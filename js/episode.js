@@ -33,11 +33,11 @@ const Episode = (function () {
 
   // What the judges say about each performance band (ids from grx-config.js)
   const BAND_TEXT = {
-    slayed: 'slayed the challenge!',
-    good:   'had a good performance!',
-    okay:   'had an okay performance.',
-    bad:    'had a bad performance.',
-    flop:   'flopped the challenge.'
+    slayed: 'Slayed the challenge!',
+    good:   'Had a good performance!',
+    okay:   'Had an okay performance.',
+    bad:    'Had a bad performance.',
+    flop:   'Flopped The Challenge...'
   };
   function C_BANDS() { return GRX_CONFIG.performanceBands.map(function (b) { return b.id; }); }
 
@@ -185,10 +185,9 @@ const Episode = (function () {
       scene.cats.forEach(function (cat, i) {
         const row = make('div', 'scene-cat');
         row.style.setProperty('--d', (0.2 + i * 0.45).toFixed(2) + 's');
-        cat.ids.forEach(function (id, j) {
-          if (j > 0) row.appendChild(make('span', 'scene-comma', ','));
-          row.appendChild(makeQueenCard(id));
-        });
+        const cards = make('div', 'scene-cat-cards');
+        cat.ids.forEach(function (id) { cards.appendChild(makeQueenCard(id)); });
+        row.appendChild(cards);
         row.appendChild(make('span', 'scene-cat-text', cat.text));
         box.appendChild(row);
       });
