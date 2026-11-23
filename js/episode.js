@@ -1,166 +1,202 @@
 /* ==========================================================================
    GreenRoom Simulator - js/episode.js
-   Basic Episode screen. GRX simulates a whole episode instantly and returns
-   an event list; this file turns that list into STAGES and shows one stage
-   at a time (press Continue). The engine is not involved in the pacing.
-   Needs grx-config.js, grx-engine.js, setup.js and cast.js loaded first.
+   The Episode screen. GRX simulates a whole episode instantly and returns an
+   event list; this file turns that list into SCENES and plays one scene per
+   screen (press Continue). Pacing and visuals are all here, the engine is
+   not involved. Animations are in css/episode.css.
+
+   Sections:
+     1. Elements and state
+     2. Building scenes from an episode log
+     3. Drawing a scene
+     4. Buttons and start-up
+   Needs grx-config.js, grx-engine.js, queens.js, setup.js, cast.js first.
+
+   A scene looks like:
+     { kicker, title, text, big,                    all optional
+       groups: [ { label, big, vs, items: [ { id, tag, tone, fx } ] } ] }
+     tone: 'win' | 'high' | 'low' | 'btm' | 'elim'     (colour of the tag)
+     fx:   'winner' | 'glow' | 'out'                   (special card effect)
    ========================================================================== */
 
 'use strict';
 
 const Episode = (function () {
 
-  const logBox  = document.getElementById('episode-log');
-  const nextBtn = document.getElementById('ep-next');
-  const allBtn  = document.getElementById('ep-all');
-  const newBtn  = document.getElementById('ep-new');
-  const simBtn  = document.getElementById('ep-sim');
+  /* ---------- 1. Elements and state ---------- */
+  const stageBox = document.getElementById('episode-stage');
+  const nextBtn  = document.getElementById('ep-next');
+
+  const STEP = 0.35;        // seconds between queens appearing one by one
 
   let season = null;
-  let stages = [];       // stages of the episode being shown
-  let stageIndex = 0;    // next stage to show
+  let scenes = [];          // scenes of the episode being shown
+  let sceneIndex = 0;
   let finaleShown = false;
 
-  function name(id) {
-    const q = season.queens.find(function (x) { return x.id === id; });
-    return q ? q.name : id;
-  }
-  function names(list) { return list.map(name); }
+  function queenData(id) { return QUEENS.find(function (q) { return q.id === id; }); }
+  function name(id) { return queenData(id).name; }
+  function item(id, tag, tone, fx) { return { id: id, tag: tag, tone: tone, fx: fx }; }
+  function plain(ids) { return ids.map(function (id) { return item(id); }); }
 
 
-  /* ---------- Turn an episode log into stages ----------
-     A stage = { title, lines: [text...], elim: true for the sashay } */
-  function buildStages(log) {
-    const out = [];
+  /* ---------- 2. Building scenes ---------- */
+  function buildScenes(log) {
     const ev = {};
     log.events.forEach(function (e) { ev[e.type] = e; });
-    const head = 'Episode ' + log.episode;
+    const kicker = 'Episode ' + log.episode;
+    const out = [];
+
+    // Everyone still in the competition this week
+    const everyone = ev.safe.queens.concat(ev.critiques.tops, ev.critiques.bottoms);
 
     if (ev.entrance) {
-      out.push({ title: head + ': Entrances',
-                 lines: ['The queens enter the Werk Room.'].concat(names(ev.entrance.queens)) });
+      out.push({ kicker: kicker, title: 'Welcome to the Werk Room',
+                 text: 'The queens enter one by one.',
+                 groups: [{ items: plain(ev.entrance.queens) }] });
     }
-    out.push({ title: head + ': Maxi challenge', lines: ['This week\u2019s challenge: ' + ev.challenge.name + '.'] });
-    out.push({ title: head + ': ' + ev.challenge.name, lines: ['The queens perform the ' + ev.challenge.name + ' challenge.'] });
-    out.push({ title: head + ': Runway', lines: ['The queens walk the runway.'] });
+
+    out.push({ kicker: kicker, title: 'This week\u2019s maxi challenge', big: ev.challenge.name });
+    out.push({ kicker: kicker, title: ev.challenge.name,
+               text: 'The queens give it everything.' });
+    out.push({ kicker: kicker, title: 'The runway',
+               text: 'The queens walk the runway.',
+               groups: [{ items: plain(everyone) }] });
 
     if (ev.safe.queens.length) {
-      out.push({ title: head + ': Safe',
-                 lines: ['The judges call the safe queens. They head to Untucked.'].concat(names(ev.safe.queens)) });
+      out.push({ kicker: kicker, title: 'Safe',
+                 text: 'These queens are safe and head to Untucked.',
+                 groups: [{ items: ev.safe.queens.map(function (id) { return item(id, 'SAFE'); }) }] });
     }
-    out.push({ title: head + ': Critiques',
-               lines: ['Tops: ' + names(ev.critiques.tops).join(', '),
-                       'Bottoms: ' + names(ev.critiques.bottoms).join(', '),
-                       'The judges give their critiques.'] });
+
+    out.push({ kicker: kicker, title: 'The critiques',
+               text: 'The judges give their critiques.',
+               groups: [{ label: 'Tops', items: plain(ev.critiques.tops) },
+                        { label: 'Bottoms', items: plain(ev.critiques.bottoms) }] });
 
     const r = ev.results;
-    const topLines = [];
-    if (r.high.length) topLines.push('HIGH: ' + names(r.high).join(', '));
-    topLines.push('WIN: ' + name(r.win));
-    out.push({ title: head + ': Top results', lines: topLines });
+    const topItems = r.high.map(function (id) { return item(id, 'HIGH', 'high'); });
+    topItems.push(item(r.win, 'WIN', 'win', 'winner'));
+    out.push({ kicker: kicker, title: 'The top queens',
+               text: r.high.length ? 'The highs are called safe, and the winner of the week is...' : 'The winner of the week is...',
+               groups: [{ items: topItems }] });
 
-    const btmLines = [];
-    if (r.low) btmLines.push('LOW (safe): ' + name(r.low));
-    btmLines.push('BOTTOM 2: ' + names(r.btm2).join(', '));
-    out.push({ title: head + ': Bottom results', lines: btmLines });
+    const btmItems = [];
+    if (r.low) btmItems.push(item(r.low, 'LOW', 'low'));
+    r.btm2.forEach(function (id) { btmItems.push(item(id, 'BOTTOM 2', 'btm')); });
+    out.push({ kicker: kicker, title: 'The bottom queens',
+               text: 'One bottom queen is safe. The other two lip sync for their lives.',
+               groups: [{ items: btmItems }] });
 
-    out.push({ title: head + ': Lip sync',
-               lines: [names(ev.lipsync.queens).join(' vs ') + ' lip sync for their lives.'] });
-    out.push({ title: head + ': Shantay', lines: [name(ev.lipsync.stay) + ', shantay, you stay.'] });
-    out.push({ title: head + ': Sashay', lines: [name(ev.elimination.queen) + ', sashay away.'], elim: true });
+    out.push({ kicker: kicker, title: 'Lip sync for your life',
+               groups: [{ big: true, vs: true, items: ev.lipsync.queens.map(function (id) { return item(id, null, null, 'glow'); }) }] });
+
+    out.push({ kicker: kicker, title: 'Shantay, you stay',
+               text: name(ev.lipsync.stay) + ', shantay, you stay.',
+               groups: [{ big: true, items: [item(ev.lipsync.stay, 'STAYS', 'win', 'winner')] }] });
+
+    out.push({ kicker: kicker, title: 'Sashay away',
+               text: name(ev.elimination.queen) + ', sashay away.',
+               groups: [{ big: true, items: [item(ev.elimination.queen, 'ELIMINATED', 'elim', 'out')] }] });
+
     return out;
   }
 
 
-  /* ---------- Drawing ---------- */
-  function clear() { logBox.textContent = ''; }
-
-  function line(text, className) {
-    const p = document.createElement('p');
-    p.textContent = text;
-    if (className) p.className = className;
-    logBox.appendChild(p);
+  /* ---------- 3. Drawing a scene ---------- */
+  function make(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text) node.textContent = text;
+    return node;
   }
 
-  function heading(text) {
-    const h = document.createElement('h4');
-    h.textContent = text;
-    logBox.appendChild(h);
+  function makeQueenCard(id, delay, fx) {
+    const queen = queenData(id);
+    const card = make('div', 'queen-card scene-card' + (fx === 'winner' ? ' is-winner' : '') +
+                             (fx === 'glow' ? ' is-glow' : '') + (fx === 'out' ? ' is-out' : ''));
+    card.style.setProperty('--d', delay.toFixed(2) + 's');
+
+    const portrait = make('span', 'portrait');
+    if (queen.image) {
+      const img = document.createElement('img');
+      img.src = queen.image;
+      img.alt = '';
+      img.addEventListener('error', function () { img.remove(); });
+      portrait.appendChild(img);
+    }
+    const label = make('span', 'queen-name', queen.name);
+    if (queen.name.length >= 16) label.classList.add('is-xlong');
+    else if (queen.name.length >= 11) label.classList.add('is-long');
+
+    card.appendChild(portrait);
+    card.appendChild(label);
+    return card;
   }
 
-  function showStage(stage) {
-    clear();
-    heading(stage.title);
-    stage.lines.forEach(function (text) { line(text, stage.elim ? 'elim' : ''); });
+  function drawScene(scene) {
+    stageBox.textContent = '';
+    if (scene.kicker) stageBox.appendChild(make('p', 'scene-kicker', scene.kicker));
+    if (scene.title)  stageBox.appendChild(make('h3', 'scene-title', scene.title));
+    if (scene.big)    stageBox.appendChild(make('p', 'scene-big', scene.big));
+    if (scene.text)   stageBox.appendChild(make('p', 'scene-text', scene.text));
+
+    let count = 0;                       // queens drawn so far, sets the reveal delay
+    (scene.groups || []).forEach(function (group) {
+      if (group.label) stageBox.appendChild(make('h4', 'scene-group-label', group.label));
+      const row = make('div', 'scene-row' + (group.big ? ' is-big' : ''));
+
+      group.items.forEach(function (it, i) {
+        if (group.vs && i === 1) row.appendChild(make('span', 'scene-vs', 'VS'));
+        const delay = 0.2 + count++ * STEP;
+        const wrap = make('div', 'scene-item');
+        wrap.appendChild(makeQueenCard(it.id, delay, it.fx));
+        if (it.tag) wrap.appendChild(make('span', 'scene-tag ' + (it.tone || ''), it.tag));
+        row.appendChild(wrap);
+      });
+      stageBox.appendChild(row);
+    });
+
+    // Restart the entrance animation of the title and text
+    stageBox.classList.remove('is-new');
+    void stageBox.offsetWidth;
+    stageBox.classList.add('is-new');
   }
 
-  function showFinale() {
-    clear();
-    heading('Final ' + season.queens.filter(function (q) { return q.status === 'active'; }).length);
-    line(names(season.queens.filter(function (q) { return q.status === 'active'; }).map(function (q) { return q.id; })).join(', '));
-    line('The finale is not built yet.');
+  function showFinaleScene() {
+    const left = season.queens.filter(function (q) { return q.status === 'active'; }).map(function (q) { return q.id; });
+    drawScene({ kicker: 'The finale', title: 'Final ' + left.length,
+                text: 'The finale is coming soon.',
+                groups: [{ big: true, items: plain(left) }] });
     finaleShown = true;
   }
 
-  function updateButtons() {
-    const over = finaleShown;
-    nextBtn.disabled = over;
-    allBtn.disabled = season.done && stageIndex >= stages.length;
-    nextBtn.textContent = (stageIndex >= stages.length && season.done) ? 'To the finale' : 'Continue';
+
+  /* ---------- 4. Buttons and start-up ---------- */
+  function updateButton() {
+    nextBtn.disabled = finaleShown;
+    nextBtn.textContent = (sceneIndex >= scenes.length && season.done) ? 'To the finale' : 'Continue';
   }
 
-
-  /* ---------- Buttons ---------- */
   function start() {
     season = GRX.newSeason(Cast.getQueens(), Setup.get());
-    stages = [];
-    stageIndex = 0;
+    scenes = [];
+    sceneIndex = 0;
     finaleShown = false;
-    clear();
-    heading('Your season is ready');
-    line('Seed ' + season.seed + '. Press Continue to start episode 1.');
-    updateButtons();
+    drawScene({ kicker: 'GreenRoom', title: 'Your season begins',
+                text: 'Press Continue to enter the Werk Room.' });
+    updateButton();
   }
 
-  // Show the next stage; when the episode is over, simulate the next one
+  // Show the next scene; when the episode is over, simulate the next one
   function next() {
-    if (stageIndex >= stages.length) {
-      if (season.done) { showFinale(); updateButtons(); return; }
-      stages = buildStages(GRX.runEpisode(season));
-      stageIndex = 0;
+    if (sceneIndex >= scenes.length) {
+      if (season.done) { showFinaleScene(); updateButton(); return; }
+      scenes = buildScenes(GRX.runEpisode(season));
+      sceneIndex = 0;
     }
-    showStage(stages[stageIndex++]);
-    updateButtons();
-  }
-
-  // Skip everything: print every episode's placements at once
-  function skipSeason() {
-    clear();
-    while (!season.done) {
-      const log = GRX.runEpisode(season);
-      if (!log) break;
-      heading('Episode ' + log.episode);
-      buildStages(log).forEach(function (s) { s.lines.forEach(function (t) { line(t, s.elim ? 'elim' : ''); }); });
-    }
-    stages = [];
-    stageIndex = 0;
-    updateButtons();
-  }
-
-  // Run 300 seasons with the current cast and print a table
-  function simulate() {
-    const rows = GRX.simulate(300, Cast.getQueens(), Setup.get());
-    clear();
-    heading('300 seasons with your cast (best first)');
-    const table = document.createElement('table');
-    table.innerHTML = '<tr><th>Queen</th><th>Avg stat</th><th>Final 3 %</th><th>Wins/season</th><th>Lip syncs</th><th>Avg out ep</th></tr>';
-    rows.forEach(function (r) {
-      const tr = document.createElement('tr');
-      [r.name, r.avgStat, r.final3Pct, r.winsPerSeason, r.lipSyncsPerSeason, r.avgOutEp === null ? '-' : r.avgOutEp]
-        .forEach(function (v) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
-      table.appendChild(tr);
-    });
-    logBox.appendChild(table);
+    drawScene(scenes[sceneIndex++]);
+    updateButton();
   }
 
   function init() {
@@ -170,9 +206,6 @@ const Episode = (function () {
       Nav.go('episode');
     });
     nextBtn.addEventListener('click', next);
-    allBtn.addEventListener('click', skipSeason);
-    newBtn.addEventListener('click', start);
-    simBtn.addEventListener('click', simulate);
   }
 
   return { init: init, get: function () { return season; } };
