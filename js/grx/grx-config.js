@@ -1,0 +1,55 @@
+/* ==========================================================================
+   GreenRoom Simulator - js/grx/grx-config.js
+   GRX (Greenroom Experience Engine): every tuning value lives HERE.
+   Plain script: GRX_CONFIG is global. Load before grx-engine.js.
+   ========================================================================== */
+
+'use strict';
+
+const GRX_CONFIG = {
+
+  /* How wild results are. The random roll added to every score has this
+     standard deviation (stats are 1-10). Roughly, with chaos 3:
+       9 vs 4 stat -> higher stat does better ~88% of the time
+       8 vs 6      -> ~65%      7 vs 6 -> ~57%
+     Lower = more predictable. Higher = more upsets. */
+  chaos: 3,
+
+  /* Lip syncs are more of an upset zone, so a bigger roll. */
+  lipSyncChaos: 4,
+
+  /* Episode score = challenge * this + runway * (1 - this). */
+  challengeShare: 0.6,
+
+  /* A challenge can't appear again within this many episodes. */
+  challengeCooldown: 2,
+
+  /* Runway is judged on this stat mix. */
+  runwayWeights: { design: 1 },
+
+  /* Maxi challenges. Add one entry to add a challenge, nothing else changes.
+     weights use the stat keys from queens.js (comedy, design, performance,
+     acting, lipSync) and should add up to 1. */
+  challenges: [
+    { id: 'design',      name: 'Design',      weights: { design: 1 } },
+    { id: 'acting',      name: 'Acting',      weights: { acting: 0.6, comedy: 0.4 } },
+    { id: 'improv',      name: 'Improv',      weights: { comedy: 0.6, acting: 0.4 } },
+    { id: 'girl-groups', name: 'Girl Groups', weights: { performance: 0.5, lipSync: 0.5 } },
+    { id: 'snatch-game', name: 'Snatch Game', weights: { comedy: 1 } }
+  ],
+
+  /* Episode shape by queens left. The first row with queensLeft >= minQueens
+     is used. safe: 'rest' = everyone not in the top or bottom group.
+     7 left is always 2 safe (producers never send 1 queen to Untucked alone).
+     Fewer than 4 left = finale, not built yet. */
+  episodeShapes: [
+    { minQueens: 8, safe: 'rest', top: 3, bottom: 3 },
+    { minQueens: 7, safe: 2,      top: 2, bottom: 3 },
+    { minQueens: 6, safe: 0,      top: 3, bottom: 3 },
+    { minQueens: 5, safe: 0,      top: 2, bottom: 3 },
+    { minQueens: 4, safe: 0,      top: 2, bottom: 2 }
+  ],
+
+  /* Season stops here (finale rules come later). */
+  finaleAt: 3
+};

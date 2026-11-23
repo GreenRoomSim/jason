@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="css/home.css">     <!-- home screen -->
   <link rel="stylesheet" href="css/pages.css">    <!-- page headers + placeholder pages -->
   <link rel="stylesheet" href="css/setup.css">    <!-- setup screen (settings + cast) -->
+  <link rel="stylesheet" href="css/episode.css">  <!-- basic episode screen (GRX test UI) -->
 </head>
 <body>
 
@@ -116,6 +117,25 @@
   </section>
 
 
+  <!-- ============ EPISODE (opened by Continue on the setup screen) ============
+       Basic text output from GRX, built by js/episode.js. Replace later. -->
+  <section class="screen screen--page screen--episode" data-screen="episode" aria-labelledby="title-episode">
+    <div class="page-head">
+      <div class="page-header">
+        <button class="btn back" data-goto="setup">Back</button>
+        <h2 class="page-title" id="title-episode" tabindex="-1" data-autofocus>Season</h2>
+      </div>
+    </div>
+    <div class="episode-actions">
+      <button class="btn" id="ep-next">Next episode</button>
+      <button class="btn" id="ep-all">Run whole season</button>
+      <button class="btn" id="ep-new">New season</button>
+      <button class="btn" id="ep-sim">Simulate 300 seasons</button>
+    </div>
+    <div class="episode-log" id="episode-log" aria-live="polite"></div>
+  </section>
+
+
   <!-- ============ CHANGELOG ============ -->
   <section class="screen screen--page" data-screen="changelog" aria-labelledby="title-changelog">
     <div class="page-head">
@@ -164,6 +184,9 @@
   <script src="js/navigation.js" defer></script>
   <script src="js/setup.js" defer></script>
   <script src="js/cast.js" defer></script>
+  <script src="js/grx/grx-config.js" defer></script>
+  <script src="js/grx/grx-engine.js" defer></script>
+  <script src="js/episode.js" defer></script>
   <script src="js/main.js" defer></script>
 </body>
 </html>

@@ -37,4 +37,5 @@ document.addEventListener('keydown', function (event) {
 /* ---------- 3. Start the app ---------- */
 Setup.init();    // build the season settings (left of the setup screen)
 Cast.init();     // build the queen cards (right of the setup screen)
+Episode.init();  // basic episode screen (GRX test UI)
 Nav.init();      // show the right screen
