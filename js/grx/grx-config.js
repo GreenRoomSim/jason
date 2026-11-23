@@ -62,7 +62,12 @@ const GRX_CONFIG = {
     { id: 'acting',      name: 'Acting',      weights: { acting: 0.6, comedy: 0.4 } },
     { id: 'improv',      name: 'Improv',      weights: { comedy: 0.6, acting: 0.4 } },
     { id: 'girl-groups', name: 'Girl Groups', weights: { performance: 0.5, lipSync: 0.5 } },
-    { id: 'snatch-game', name: 'Snatch Game', weights: { comedy: 1 } }
+    { id: 'snatch-game', name: 'Snatch Game', weights: { comedy: 1 } },
+    { id: 'ball',        name: 'Ball',        weights: { design: 1 } },
+    { id: 'makeover',    name: 'Makeover',    weights: { design: 0.7, performance: 0.3 } },
+    { id: 'Advert',      name: 'Advert',      weights: { acting: 0.5, comedy: 0.5 } },
+    { id: 'rusical',     name: 'Rusical',     weights: { performance: 0.7, acting: 0.3 } },
+    { id: 'talent-show', name: 'Talent Show', weights: { performance: 0.7, lipSync: 0.3 } },
   ],
 
   /* Episode shape by queens left. The first row with queensLeft >= minQueens
