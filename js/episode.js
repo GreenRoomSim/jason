@@ -1,7 +1,8 @@
 /* ==========================================================================
    GreenRoom Simulator - js/episode.js
-   Very basic Episode screen: starts a season from the setup screen and prints
-   what GRX returns as plain text. Replace with the real Episode UI later.
+   Basic Episode screen. GRX simulates a whole episode instantly and returns
+   an event list; this file turns that list into STAGES and shows one stage
+   at a time (press Continue). The engine is not involved in the pacing.
    Needs grx-config.js, grx-engine.js, setup.js and cast.js loaded first.
    ========================================================================== */
 
@@ -9,18 +10,70 @@
 
 const Episode = (function () {
 
-  const logBox = document.getElementById('episode-log');
+  const logBox  = document.getElementById('episode-log');
   const nextBtn = document.getElementById('ep-next');
   const allBtn  = document.getElementById('ep-all');
   const newBtn  = document.getElementById('ep-new');
   const simBtn  = document.getElementById('ep-sim');
+
   let season = null;
+  let stages = [];       // stages of the episode being shown
+  let stageIndex = 0;    // next stage to show
+  let finaleShown = false;
 
   function name(id) {
     const q = season.queens.find(function (x) { return x.id === id; });
     return q ? q.name : id;
   }
-  function names(list) { return list.map(name).join(', ') || 'none'; }
+  function names(list) { return list.map(name); }
+
+
+  /* ---------- Turn an episode log into stages ----------
+     A stage = { title, lines: [text...], elim: true for the sashay } */
+  function buildStages(log) {
+    const out = [];
+    const ev = {};
+    log.events.forEach(function (e) { ev[e.type] = e; });
+    const head = 'Episode ' + log.episode;
+
+    if (ev.entrance) {
+      out.push({ title: head + ': Entrances',
+                 lines: ['The queens enter the Werk Room.'].concat(names(ev.entrance.queens)) });
+    }
+    out.push({ title: head + ': Maxi challenge', lines: ['This week\u2019s challenge: ' + ev.challenge.name + '.'] });
+    out.push({ title: head + ': ' + ev.challenge.name, lines: ['The queens perform the ' + ev.challenge.name + ' challenge.'] });
+    out.push({ title: head + ': Runway', lines: ['The queens walk the runway.'] });
+
+    if (ev.safe.queens.length) {
+      out.push({ title: head + ': Safe',
+                 lines: ['The judges call the safe queens. They head to Untucked.'].concat(names(ev.safe.queens)) });
+    }
+    out.push({ title: head + ': Critiques',
+               lines: ['Tops: ' + names(ev.critiques.tops).join(', '),
+                       'Bottoms: ' + names(ev.critiques.bottoms).join(', '),
+                       'The judges give their critiques.'] });
+
+    const r = ev.results;
+    const topLines = [];
+    if (r.high.length) topLines.push('HIGH: ' + names(r.high).join(', '));
+    topLines.push('WIN: ' + name(r.win));
+    out.push({ title: head + ': Top results', lines: topLines });
+
+    const btmLines = [];
+    if (r.low) btmLines.push('LOW (safe): ' + name(r.low));
+    btmLines.push('BOTTOM 2: ' + names(r.btm2).join(', '));
+    out.push({ title: head + ': Bottom results', lines: btmLines });
+
+    out.push({ title: head + ': Lip sync',
+               lines: [names(ev.lipsync.queens).join(' vs ') + ' lip sync for their lives.'] });
+    out.push({ title: head + ': Shantay', lines: [name(ev.lipsync.stay) + ', shantay, you stay.'] });
+    out.push({ title: head + ': Sashay', lines: [name(ev.elimination.queen) + ', sashay away.'], elim: true });
+    return out;
+  }
+
+
+  /* ---------- Drawing ---------- */
+  function clear() { logBox.textContent = ''; }
 
   function line(text, className) {
     const p = document.createElement('p');
@@ -35,62 +88,69 @@ const Episode = (function () {
     logBox.appendChild(h);
   }
 
-  function showEpisode(log) {
-    heading('Episode ' + log.episode + ' (' + log.queensLeft + ' queens)');
-    log.events.forEach(function (e) {
-      if (e.type === 'entrance')    line('The queens enter the Werk Room: ' + names(e.queens));
-      if (e.type === 'challenge')   line('Challenge: ' + e.name);
-      if (e.type === 'safe' && e.queens.length) line('SAFE: ' + names(e.queens));
-      if (e.type === 'critiques')   line('Tops: ' + names(e.tops) + '  |  Bottoms: ' + names(e.bottoms));
-      if (e.type === 'results') {
-        line('WIN: ' + name(e.win));
-        if (e.high.length) line('HIGH: ' + names(e.high));
-        if (e.low) line('LOW: ' + name(e.low));
-        line('BTM2: ' + names(e.btm2));
-      }
-      if (e.type === 'lipsync')     line(names(e.queens) + ' lip sync. ' + name(e.stay) + ' shantays.');
-      if (e.type === 'elimination') line(name(e.queen) + ' sashays away.', 'elim');
-    });
+  function showStage(stage) {
+    clear();
+    heading(stage.title);
+    stage.lines.forEach(function (text) { line(text, stage.elim ? 'elim' : ''); });
+  }
+
+  function showFinale() {
+    clear();
+    heading('Final ' + season.queens.filter(function (q) { return q.status === 'active'; }).length);
+    line(names(season.queens.filter(function (q) { return q.status === 'active'; }).map(function (q) { return q.id; })).join(', '));
+    line('The finale is not built yet.');
+    finaleShown = true;
   }
 
   function updateButtons() {
-    const done = !season || season.done;
-    nextBtn.disabled = done;
-    allBtn.disabled = done;
+    const over = finaleShown;
+    nextBtn.disabled = over;
+    allBtn.disabled = season.done && stageIndex >= stages.length;
+    nextBtn.textContent = (stageIndex >= stages.length && season.done) ? 'To the finale' : 'Continue';
   }
 
-  function finishedNote() {
-    if (season.done) {
-      heading('Top ' + season.queens.filter(function (q) { return q.status === 'active'; }).length + ' reached');
-      line('Finale: ' + names(season.queens.filter(function (q) { return q.status === 'active'; }).map(function (q) { return q.id; })) +
-           ' (finale not built yet)');
-    }
-  }
 
+  /* ---------- Buttons ---------- */
   function start() {
     season = GRX.newSeason(Cast.getQueens(), Setup.get());
-    logBox.textContent = '';
-    line('New season (seed ' + season.seed + '). Press Next episode or Run whole season.');
+    stages = [];
+    stageIndex = 0;
+    finaleShown = false;
+    clear();
+    heading('Your season is ready');
+    line('Seed ' + season.seed + '. Press Continue to start episode 1.');
     updateButtons();
   }
 
+  // Show the next stage; when the episode is over, simulate the next one
   function next() {
-    const log = GRX.runEpisode(season);
-    if (log) showEpisode(log);
-    finishedNote();
+    if (stageIndex >= stages.length) {
+      if (season.done) { showFinale(); updateButtons(); return; }
+      stages = buildStages(GRX.runEpisode(season));
+      stageIndex = 0;
+    }
+    showStage(stages[stageIndex++]);
     updateButtons();
   }
 
-  function all() {
-    while (!season.done) { const log = GRX.runEpisode(season); if (log) showEpisode(log); }
-    finishedNote();
+  // Skip everything: print every episode's placements at once
+  function skipSeason() {
+    clear();
+    while (!season.done) {
+      const log = GRX.runEpisode(season);
+      if (!log) break;
+      heading('Episode ' + log.episode);
+      buildStages(log).forEach(function (s) { s.lines.forEach(function (t) { line(t, s.elim ? 'elim' : ''); }); });
+    }
+    stages = [];
+    stageIndex = 0;
     updateButtons();
   }
 
   // Run 300 seasons with the current cast and print a table
   function simulate() {
     const rows = GRX.simulate(300, Cast.getQueens(), Setup.get());
-    logBox.textContent = '';
+    clear();
     heading('300 seasons with your cast (best first)');
     const table = document.createElement('table');
     table.innerHTML = '<tr><th>Queen</th><th>Avg stat</th><th>Final 3 %</th><th>Wins/season</th><th>Lip syncs</th><th>Avg out ep</th></tr>';
@@ -110,7 +170,7 @@ const Episode = (function () {
       Nav.go('episode');
     });
     nextBtn.addEventListener('click', next);
-    allBtn.addEventListener('click', all);
+    allBtn.addEventListener('click', skipSeason);
     newBtn.addEventListener('click', start);
     simBtn.addEventListener('click', simulate);
   }
