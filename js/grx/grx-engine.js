@@ -38,6 +38,11 @@ const GRX = (function () {
 
 
   /* ---------- Season state ---------- */
+  function btm2CapFor(castSize) {
+    const row = C.btm2Cap.find(function (r) { return castSize >= r.minCast; });
+    return row ? row.cap : 3;
+  }
+
   function newSeason(queens, settings, seed) {
     if (seed === undefined) seed = Math.floor(Math.random() * 4294967296);
     return {
@@ -50,6 +55,8 @@ const GRX = (function () {
                  placements: [], lipSyncs: 0, wins: 0, eliminatedEp: null };
       }),
       challengeHistory: [],
+      btm2Cap: btm2CapFor(queens.length),   // BTM2 appearances that get a queen sent home
+      lastWinner: null,                     // id of last episode's winner
       runwayHistory: [],      // theme ids used so far
       songHistory: [],        // lip sync song ids used so far
       eliminated: [],
@@ -150,6 +157,12 @@ const GRX = (function () {
     const ranked = active.slice().sort(function (a, b) { return total[b.id] - total[a.id]; });
     const placement = {};
     const tops = ranked.slice(0, shape.top);
+    // Repeat winners: last week's winner is less likely to win again. She is
+    // still in the tops, the win just goes to the next best top queen.
+    if (state.lastWinner && tops.length > 1 && tops[0].id === state.lastWinner &&
+        state.rng() >= C.repeatWinChance) {
+      const first = tops[0]; tops[0] = tops[1]; tops[1] = first;
+    }
     const bottoms = ranked.slice(n - shape.bottom);
     const safe = ranked.slice(shape.top, n - shape.bottom);
 
@@ -168,15 +181,32 @@ const GRX = (function () {
     const ls = btm2.map(function (q) {
       return { q: q, s: roll(state, q, { lipSync: 1 }, C.lipSyncChaos) };
     }).sort(function (a, b) { return b.s - a.s; });
-    const stay = ls[0].q, out = ls[1].q;
+    let stay = ls[0].q, out = ls[1].q;
+
+    // Unspoken rule: on her Nth BTM2 (the cap) a queen goes home even if she
+    // wins the lip sync. If both are at the cap, the one with more BTM2s goes
+    // home; if they are level, the lip sync decides.
+    const capped = btm2.filter(function (q) { return q.lipSyncs + 1 >= state.btm2Cap; });
+    let target = null;
+    if (capped.length === 1) target = capped[0];
+    else if (capped.length === 2 && btm2[0].lipSyncs !== btm2[1].lipSyncs) {
+      target = btm2[0].lipSyncs > btm2[1].lipSyncs ? btm2[0] : btm2[1];
+    }
+    let forcedByCap = false;
+    if (target && target !== out) {
+      out = target;
+      stay = btm2.find(function (q) { return q !== out; });
+      forcedByCap = true;
+    }
     const song = pickFresh(state, typeof LIPSYNC_SONGS !== 'undefined' ? LIPSYNC_SONGS : [], state.songHistory);
-    events.push({ type: 'lipsync', queens: ids(btm2), stay: stay.id,
+    events.push({ type: 'lipsync', queens: ids(btm2), stay: stay.id, forcedByCap: forcedByCap,
                   song: song ? { id: song.id, title: song.title, artist: song.artist } : null });
     events.push({ type: 'elimination', queen: out.id });
 
     // Update records
     active.forEach(function (q) { q.placements.push(placement[q.id]); });
     tops[0].wins++;
+    state.lastWinner = tops[0].id;
     btm2.forEach(function (q) { q.lipSyncs++; });
     out.status = 'eliminated';
     out.eliminatedEp = state.episode;

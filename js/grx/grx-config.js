@@ -36,6 +36,21 @@ const GRX_CONFIG = {
     { id: 'flop',   min: -Infinity }
   ],
 
+  /* BEHIND THE SCENES (never shown on screen): the unspoken rule that you
+     can't lip sync your way to the crown. A queen is sent home on her Nth
+     time in the BTM2, whatever her lip sync was like, where N depends on the
+     starting cast size. The first row with castSize >= minCast is used. */
+  btm2Cap: [
+    { minCast: 12, cap: 4 },     // 12-14 queens: eliminated on the 4th BTM2
+    { minCast: 0,  cap: 3 }      // smaller casts: eliminated on the 3rd
+  ],
+
+  /* BEHIND THE SCENES: if a queen won LAST episode and would win again, she
+     keeps the win with this chance (otherwise the win goes to the next best
+     top queen and she is HIGH). Only the very next episode is affected, and
+     her chance of being in the tops is unchanged. 1 = no effect, 0 = never. */
+  repeatWinChance: 0.4,
+
   /* Runway is judged on this stat mix. */
   runwayWeights: { design: 1 },
 
