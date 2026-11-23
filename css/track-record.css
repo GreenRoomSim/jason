@@ -1,0 +1,139 @@
+/* ==========================================================================
+   GreenRoom Simulator - css/track-record.css
+   The season track record table (built by js/track-record.js).
+   Sections:
+     1. Sizes and colours (edit the look here)
+     2. Table layout
+     3. Placement cells
+   ========================================================================== */
+
+/* ---------- 1. Sizes and colours ---------- */
+:root {
+  /* Widths (px) */
+  --tr-rank-w: 56px;
+  --tr-name-w: 98px;
+  --tr-photo-w: 73px;
+  --tr-ep-w: 50px;
+  --tr-row-h: 75px;
+
+  /* Header and name cells */
+  --tr-head-bg: #f3f3f3;
+  --tr-sub-bg: #f9f9f9;
+  --tr-head-line: #c9c9c9;      /* thick line under the header */
+  --tr-rank-bg: #fafafa;
+  --tr-name-bg: #efefef;
+  --tr-grid: #ffffff;           /* thin lines between cells */
+
+  /* Placement colours (same as the episode screens) */
+  --tr-win:  #4169e1;
+  --tr-high: #add8e6;
+  --tr-safe: #fafafa;
+  --tr-low:  #ffb6c1;
+  --tr-btm:  #ff6347;
+  --tr-elim: #ff0000;
+  --tr-gone: #a9a9a9;           /* after she has been eliminated */
+}
+
+/* ---------- 2. Table layout ---------- */
+.track-wrap {
+  display: inline-block;
+  margin-top: 6px;
+  max-width: 100%;
+  overflow-x: auto;             /* long seasons scroll sideways */
+  background: #fff;
+}
+
+.track {
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: center;
+  font-family: Roboto, Arial, Helvetica, sans-serif;
+  color: #000;
+}
+
+.track th, .track td {
+  padding: 0;
+  border: 1px solid var(--tr-grid);
+}
+
+/* Header row 1: "Rank", "Contestant", "Ep. 1" ... */
+.track thead .head-main th {
+  height: 44px;
+  font-weight: 700;
+  font-size: 13px;
+  background: var(--tr-head-bg);
+}
+.track thead .head-main th.col-title { height: 72px; }
+
+/* Header row 2: challenge names */
+.track thead .head-sub th {
+  height: 28px;
+  padding: 0 3px;
+  font-weight: 700;
+  font-size: 10px;
+  line-height: 1.15;
+  background: var(--tr-sub-bg);
+  border-bottom: 4px solid var(--tr-head-line);
+}
+.track thead th.col-title { border-bottom: 4px solid var(--tr-head-line); }
+
+.col-rank  { width: var(--tr-rank-w); }
+.col-name  { width: var(--tr-name-w); }
+.col-photo { width: var(--tr-photo-w); }
+.col-ep    { width: var(--tr-ep-w); }
+
+.track tbody tr { height: var(--tr-row-h); }
+
+.cell-rank {
+  font-size: 11px;
+  background: var(--tr-rank-bg);
+}
+
+.cell-name {
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--tr-name-bg);
+}
+
+.cell-photo {
+  position: relative;
+  background: linear-gradient(160deg, #d3e9dc, #8fc3a8);
+  overflow: hidden;
+}
+.cell-photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 20%;
+}
+/* Silhouette shown when there is no photo */
+.cell-photo::before {
+  content: "";
+  position: absolute;
+  left: 33%; top: 20%;
+  width: 34%; height: 0; padding-top: 34%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.65);
+}
+.cell-photo::after {
+  content: "";
+  position: absolute;
+  left: 14%; bottom: -6%;
+  width: 72%; height: 40%;
+  border-radius: 50% 50% 0 0;
+  background: rgba(255, 255, 255, 0.65);
+}
+.cell-photo img { z-index: 1; }
+
+/* ---------- 3. Placement cells ---------- */
+.p-win  { background: var(--tr-win);  color: #fff; font-weight: 900; }
+.p-high { background: var(--tr-high); }
+.p-safe { background: var(--tr-safe); }
+.p-low  { background: var(--tr-low); }
+.p-btm  { background: var(--tr-btm); }
+.p-elim { background: var(--tr-elim); font-weight: 900; }
+.p-gone { background: var(--tr-gone); }

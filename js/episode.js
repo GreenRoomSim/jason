@@ -10,10 +10,10 @@
      3. Drawing a scene
      4. Developer panel (switch off in js/dev.js)
      5. Buttons and start-up
-   Needs grx-config.js, grx-engine.js, queens.js, dev.js, setup.js, cast.js.
+   Needs grx-config.js, grx-engine.js, queens.js, dev.js, track-record.js, setup.js, cast.js.
 
    A scene looks like:
-     { id, kicker, title, text, big, together, cats,       all optional
+     { id, kicker, title, text, big, together, cats, track,  all optional
        groups: [ { label, big, vs, text, items: [ { id, tag, tone, fx } ] } ] }
      group.text appears after that group's queens have been revealed.
      tone: 'safe' | 'high' | 'win' | 'low' | 'btm' | 'elim'  (tag colour)
@@ -138,6 +138,9 @@ const Episode = (function () {
                text: name(ev.elimination.queen) + ', sashay away.',
                groups: [{ big: true, items: [item(ev.elimination.queen, 'ELIMINATED', 'elim', 'out')] }] });
 
+    // Recap of every episode so far (gains one column per episode)
+    out.push({ id: 'track', title: 'Track record', track: true });
+
     return out;
   }
 
@@ -224,6 +227,9 @@ const Episode = (function () {
       }
     });
 
+    // Track record table (built from the season so far)
+    if (scene.track) stageBox.appendChild(TrackRecord.build(season, queenData));
+
     // Restart the entrance animation of the title and text
     stageBox.classList.toggle('is-tight', !!scene.together);
     stageBox.classList.remove('is-new');
@@ -238,7 +244,8 @@ const Episode = (function () {
     episodeTag.textContent = 'The finale';
     drawScene({ id: 'finale', kicker: 'The finale', title: 'Final ' + left.length,
                 text: 'The finale is coming soon.',
-                groups: [{ big: true, items: plain(left) }] });
+                groups: [{ big: true, items: plain(left) }],
+                track: true });
     finaleShown = true;
   }
 
