@@ -135,7 +135,14 @@ const GRX = (function () {
       runway[q.id] = roll(state, q, C.runwayWeights, C.chaos);
       total[q.id]  = chal[q.id] * C.challengeShare + runway[q.id] * (1 - C.challengeShare);
     });
-    events.push({ type: 'challenge', id: challenge.id, name: challenge.name, scores: scoreMap(chal) });
+    const bands = {};
+    C.performanceBands.forEach(function (band) { bands[band.id] = []; });
+    active.slice().sort(function (a, b) { return chal[b.id] - chal[a.id]; }).forEach(function (q) {
+      const band = C.performanceBands.find(function (b) { return chal[q.id] >= b.min; });
+      bands[band.id].push(q.id);
+    });
+    events.push({ type: 'challenge', id: challenge.id, name: challenge.name,
+                  scores: scoreMap(chal), bands: bands });
     const theme = pickFresh(state, typeof RUNWAY_THEMES !== 'undefined' ? RUNWAY_THEMES : [], state.runwayHistory);
     events.push({ type: 'runway', theme: theme ? { id: theme.id, name: theme.name } : null, scores: scoreMap(runway) });
 

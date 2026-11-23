@@ -13,7 +13,7 @@
    Needs grx-config.js, grx-engine.js, queens.js, dev.js, setup.js, cast.js.
 
    A scene looks like:
-     { id, kicker, title, text, big,                       all optional
+     { id, kicker, title, text, big, together, cats,       all optional
        groups: [ { label, big, vs, text, items: [ { id, tag, tone, fx } ] } ] }
      group.text appears after that group's queens have been revealed.
      tone: 'safe' | 'high' | 'win' | 'low' | 'btm' | 'elim'  (tag colour)
@@ -30,6 +30,16 @@ const Episode = (function () {
   const episodeTag = document.getElementById('episode-label');
 
   const STEP = 0.35;        // seconds between queens appearing one by one
+
+  // What the judges say about each performance band (ids from grx-config.js)
+  const BAND_TEXT = {
+    slayed: 'slayed the challenge!',
+    good:   'had a good performance!',
+    okay:   'had an okay performance.',
+    bad:    'had a bad performance.',
+    flop:   'flopped the challenge.'
+  };
+  function C_BANDS() { return GRX_CONFIG.performanceBands.map(function (b) { return b.id; }); }
 
   let season = null;
   let scenes = [];          // scenes of the episode being shown
@@ -61,8 +71,11 @@ const Episode = (function () {
     }
 
     out.push({ id: 'challenge', title: 'This week\u2019s maxi challenge', big: ev.challenge.name });
-    out.push({ id: 'challenge-perform', title: ev.challenge.name,
-               text: 'The queens give it everything.' });
+    const cats = [];
+    C_BANDS().forEach(function (id) {
+      if (ev.challenge.bands[id].length) cats.push({ ids: ev.challenge.bands[id], text: BAND_TEXT[id] });
+    });
+    out.push({ id: 'challenge-perform', kicker: 'The main challenge', title: ev.challenge.name, cats: cats });
 
     out.push({ id: 'runway', kicker: 'The runway',
                title: ev.runway.theme ? ev.runway.theme.name : 'The runway',
@@ -83,31 +96,34 @@ const Episode = (function () {
     // Top results: winner on top, highs underneath
     const r = ev.results;
     const topGroups = [{
-      big: true,
+      size: 'mid',
       items: [item(r.win, 'WIN', 'win', 'winner')],
       text: name(r.win) + ', condragulations you are the winner of this week\u2019s challenge!!'
     }];
     if (r.high.length) {
       topGroups.push({
+        size: 'compact',
         items: r.high.map(function (id) { return item(id, 'HIGH', 'high'); }),
         text: 'Excellent work this week, you are safe.'
       });
     }
-    out.push({ id: 'top', title: 'The top queens', groups: topGroups });
+    out.push({ id: 'top', kicker: 'The top queens', together: true, groups: topGroups });
 
     // Bottom results: the safe LOW queen on top, the bottom 2 underneath
     const btmGroups = [];
     if (r.low) {
       btmGroups.push({
+        size: 'mid',
         items: [item(r.low, 'LOW', 'low')],
         text: name(r.low) + ', you are... safe.'
       });
     }
     btmGroups.push({
+      size: 'compact',
       items: r.btm2.map(function (id) { return item(id, 'BTM2', 'btm'); }),
       text: r.btm2.map(name).join(', ') + ', I\u2019m sorry my dear, but you are up for elimination.'
     });
-    out.push({ id: 'bottom', title: 'The bottom queens', groups: btmGroups });
+    out.push({ id: 'bottom', kicker: 'The bottom queens', together: true, groups: btmGroups });
 
     const song = ev.lipsync.song;
     out.push({ id: 'lipsync', title: 'Lip sync for your life',
@@ -134,11 +150,10 @@ const Episode = (function () {
     return node;
   }
 
-  function makeQueenCard(id, delay, fx) {
+  function makeQueenCard(id, fx) {
     const queen = queenData(id);
     const card = make('div', 'queen-card scene-card' + (fx === 'winner' ? ' is-winner' : '') +
                              (fx === 'glow' ? ' is-glow' : '') + (fx === 'out' ? ' is-out' : ''));
-    card.style.setProperty('--d', delay.toFixed(2) + 's');
 
     const portrait = make('span', 'portrait');
     if (queen.image) {
@@ -164,34 +179,54 @@ const Episode = (function () {
     if (scene.big)    stageBox.appendChild(make('p', 'scene-big', scene.big));
     if (scene.text)   stageBox.appendChild(make('p', 'scene-text', scene.text));
 
+    // Performance categories: one row per category, each row appears as one piece
+    if (scene.cats) {
+      const box = make('div', 'scene-cats');
+      scene.cats.forEach(function (cat, i) {
+        const row = make('div', 'scene-cat');
+        row.style.setProperty('--d', (0.2 + i * 0.45).toFixed(2) + 's');
+        cat.ids.forEach(function (id, j) {
+          if (j > 0) row.appendChild(make('span', 'scene-comma', ','));
+          row.appendChild(makeQueenCard(id));
+        });
+        row.appendChild(make('span', 'scene-cat-text', cat.text));
+        box.appendChild(row);
+      });
+      stageBox.appendChild(box);
+    }
+
+    // Groups of queens. scene.together = everything (cards, tags, text) at once.
     let t = 0.2;                         // reveal clock (seconds) for this scene
     (scene.groups || []).forEach(function (group) {
       if (group.label) stageBox.appendChild(make('h4', 'scene-group-label', group.label));
-      const row = make('div', 'scene-row' + (group.big ? ' is-big' : ''));
+      const row = make('div', 'scene-row' + (group.big ? ' is-big' : '') + (group.size ? ' is-' + group.size : ''));
 
       let lastDelay = t;
       group.items.forEach(function (it, i) {
         if (group.vs && i === 1) row.appendChild(make('span', 'scene-vs', 'VS'));
         const wrap = make('div', 'scene-item');
-        wrap.appendChild(makeQueenCard(it.id, t, it.fx));
+        wrap.style.setProperty('--d', t.toFixed(2) + 's');           // card AND tag read this
+        if (scene.together) wrap.style.setProperty('--tag-gap', '0s');
+        wrap.appendChild(makeQueenCard(it.id, it.fx));
         if (it.tag) wrap.appendChild(make('span', 'scene-tag ' + (it.tone || ''), it.tag));
         row.appendChild(wrap);
         lastDelay = t;
-        t += STEP;
+        if (!scene.together) t += STEP;
       });
       stageBox.appendChild(row);
 
-      // Text for this group appears once its queens and tags are in
+      // Text for this group
       if (group.text) {
         const late = make('p', 'scene-text scene-late', group.text);
-        const delay = lastDelay + 1.1;
+        const delay = scene.together ? 0.2 : lastDelay + 1.1;
         late.style.setProperty('--d', delay.toFixed(2) + 's');
         stageBox.appendChild(late);
-        t = delay + 0.8;                 // the next group starts after the text
+        if (!scene.together) t = delay + 0.8;
       }
     });
 
     // Restart the entrance animation of the title and text
+    stageBox.classList.toggle('is-tight', !!scene.together);
     stageBox.classList.remove('is-new');
     void stageBox.offsetWidth;
     stageBox.classList.add('is-new');

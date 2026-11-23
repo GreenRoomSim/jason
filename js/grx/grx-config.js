@@ -24,6 +24,18 @@ const GRX_CONFIG = {
   /* A challenge can't appear again within this many episodes. */
   challengeCooldown: 2,
 
+  /* How the judges rate each queen's MAIN CHALLENGE performance (shown on the
+     "challenge" screen). A queen lands in the first band whose min her
+     challenge score reaches. Scores are on the stat scale (about 1-10, plus
+     the random roll), so raise a min to make that band harder to get. */
+  performanceBands: [
+    { id: 'slayed', min: 9 },
+    { id: 'good',   min: 7 },
+    { id: 'okay',   min: 5 },
+    { id: 'bad',    min: 3 },
+    { id: 'flop',   min: -Infinity }
+  ],
+
   /* Runway is judged on this stat mix. */
   runwayWeights: { design: 1 },
 
