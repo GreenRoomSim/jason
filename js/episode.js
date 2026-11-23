@@ -259,7 +259,6 @@ const Episode = (function () {
       : 'Screen: ' + scene.id);
 
     if (season) {
-      lines.push('Seed: ' + season.seed);
       lines.push('Queens left: ' + season.queens.filter(function (q) { return q.status === 'active'; }).length);
     }
     if (inEpisode) {

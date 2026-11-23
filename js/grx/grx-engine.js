@@ -8,8 +8,6 @@
      const s = GRX.newSeason(Cast.getQueens(), Setup.get());
      GRX.runEpisode(s);   GRX.runSeason(s);
      GRX.simulate(500, Cast.getQueens());   // table of results
-   Note: a season holds its random generator in s.rng, so it can't be saved
-   as JSON yet (s.seed + replaying would recreate it).
    ========================================================================== */
 
 'use strict';
@@ -18,16 +16,8 @@ const GRX = (function () {
 
   const C = GRX_CONFIG;
 
-  /* ---------- Random numbers (seeded, so seasons can be replayed) ---------- */
-  function makeRng(seed) {
-    let a = seed >>> 0;
-    return function () {
-      a = (a + 0x6D2B79F5) | 0;
-      let t = Math.imul(a ^ (a >>> 15), 1 | a);
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-  }
+  /* ---------- Random numbers ---------- */
+  // Every random roll uses Math.random (no seeds, so seasons can't be replayed)
 
   // Bell-curve random number: mostly near 0, sometimes far away
   function gauss(rng) {
@@ -43,11 +33,9 @@ const GRX = (function () {
     return row ? row.cap : 3;
   }
 
-  function newSeason(queens, settings, seed) {
-    if (seed === undefined) seed = Math.floor(Math.random() * 4294967296);
+  function newSeason(queens, settings) {
     return {
-      seed: seed,
-      rng: makeRng(seed),
+      rng: Math.random,
       settings: settings || {},
       episode: 1,
       queens: queens.map(function (q) {

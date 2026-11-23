@@ -142,19 +142,18 @@
 .episode-stage.is-tight .scene-text { font-size: clamp(1rem, 1.8vw, 1.2rem); }
 
 /* Challenge performance: each category is its own block, queens on one row
-   with the category text underneath. Blocks sit side by side and wrap, so
-   everything fits on screen. For one block per line, change .scene-cats
-   to flex-direction: column. Card size: --card-w below. */
+   with the category text underneath. Each category sits on its own line.
+   Card size: --card-w below. */
 .scene-cats {
   width: 100%;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 16px 40px;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
 }
 .scene-cat {
-  --card-w: clamp(58px, 10vh, 92px);
-  --name-size: 0.62rem; --name-size-long: 0.56rem; --name-size-xlong: 0.5rem;
+  --card-w: clamp(68px, 11.5vh, 108px);
+  --name-size: 0.7rem; --name-size-long: 0.62rem; --name-size-xlong: 0.55rem;
   max-width: 100%;
   display: flex;
   flex-direction: column;
