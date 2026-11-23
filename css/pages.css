@@ -1,0 +1,77 @@
+/* ==========================================================================
+   GreenRoom Simulator - css/pages.css
+   Pieces shared by every sub-screen (Back button bar, page title) and the
+   simple placeholder pages (Changelog, Suggest a feature, Credits).
+   ========================================================================== */
+
+
+/* ---------- Placeholder pages and shared page header ---------- */
+.screen--page {
+  --page-width: 860px;                 /* content width; screens can override */
+  justify-content: flex-start;
+  gap: clamp(24px, 5vh, 48px);
+}
+
+/* Top bar holding the Back button */
+.page-top {
+  width: min(100%, var(--page-width));
+  display: flex;
+  justify-content: flex-start;
+}
+
+.btn.back {
+  --lift: 6px;
+  width: auto;
+  font-size: clamp(1rem, 1.8vw, 1.3rem);
+  padding: 14px 32px;
+  border-radius: 16px;
+}
+
+.page-title {
+  margin: 0;
+  font-family: var(--font-logo);
+  font-weight: 800;
+  font-size: clamp(2.4rem, 7vw, 5rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  outline: none;
+}
+
+/* Dashed box that marks "something goes here later" */
+.placeholder-card {
+  width: min(100%, var(--page-width));
+  flex: 1;
+  max-height: 520px;
+  min-height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  border: 3px dashed rgba(40, 106, 82, 0.4);
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.placeholder-card p {
+  margin: 0;
+  max-width: 34ch;
+  font-weight: 700;
+  font-size: clamp(1.05rem, 2vw, 1.5rem);
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+
+/* Title + one-line description, kept close together */
+.page-head {
+  display: grid;
+  gap: 10px;
+}
+
+.page-sub {
+  margin: 0;
+  font-weight: 700;
+  font-size: clamp(1rem, 2vw, 1.35rem);
+  color: var(--ink);
+}
