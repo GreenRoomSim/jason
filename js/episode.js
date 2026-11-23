@@ -269,6 +269,7 @@ const Episode = (function () {
       lines.push('Challenge: ' + ev.challenge.name);
       lines.push('Runway: ' + (ev.runway.theme ? ev.runway.theme.name : '-'));
       lines.push('Song: ' + (ev.lipsync.song ? ev.lipsync.song.title : '-'));
+      lines.push('BTM2 cap: ' + season.btm2Cap + (ev.lipsync.forcedByCap ? '  (elimination forced by cap)' : ''));
     }
     devPanel.textContent = lines.join('\n');
   }
