@@ -26,7 +26,6 @@
 
   /* Placement colours (same as the episode screens) */
   --tr-win:  #4169e1;
-  --tr-top2: #00bfff;
   --tr-high: #add8e6;
   --tr-safe: #fafafa;
   --tr-low:  #ffb6c1;
@@ -132,17 +131,9 @@
 
 /* ---------- 3. Placement cells ---------- */
 .p-win  { background: var(--tr-win);  color: #fff; font-weight: 900; }
-.p-top2 { background: var(--tr-top2); font-weight: 900; }
 .p-high { background: var(--tr-high); }
 .p-safe { background: var(--tr-safe); }
 .p-low  { background: var(--tr-low); }
 .p-btm  { background: var(--tr-btm); }
 .p-elim { background: var(--tr-elim); font-weight: 900; }
 .p-gone { background: var(--tr-gone); }
-
-/* ---------- 4. Finale column ---------- */
-:root { --tr-finale-w: 78px; }
-.col-finale { width: var(--tr-finale-w); }
-.p-winner { background: #ffd100; color: #000; font-weight: 900; font-size: 11px; }
-.p-runner { background: #d9d9d9; color: #000; font-weight: 900; font-size: 11px; }
-.p-guest  { background: #cccccc; color: #000; font-size: 11px; }
