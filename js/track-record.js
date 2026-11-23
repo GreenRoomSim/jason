@@ -52,21 +52,29 @@ const TrackRecord = (function () {
     return queen.placements[ep - 1] || null;
   }
 
-  function count(queen, placement) {
-    return queen.placements.filter(function (p) { return p === placement; }).length;
+  // Best to worst, used to order the rows
+  const PLACEMENT_ORDER = ['WIN', 'HIGH', 'SAFE', 'LOW', 'BTM2', 'ELIM'];
+  function placementRank(p) {
+    const i = PLACEMENT_ORDER.indexOf(p);
+    return i === -1 ? PLACEMENT_ORDER.length : i;
   }
 
-  // Row order: queens still in (best record first), then the eliminated
-  // queens with the latest elimination first (so 5th, 6th, 7th ...)
+  // Row order:
+  //  1. Queens still in, by their MOST RECENT placement:
+  //     WIN, HIGH, SAFE, LOW, BTM2. Queens with the same placement are
+  //     split by the episode before that, then the one before, and so on.
+  //  2. Eliminated queens underneath, in elimination order: the first queen
+  //     out is the very bottom row, the second out is the row above her...
   function orderQueens(season) {
     const inComp = season.queens.filter(function (q) { return q.status === 'active'; });
     const out = season.queens.filter(function (q) { return q.status !== 'active'; });
 
     inComp.sort(function (a, b) {
-      return count(b, 'WIN') - count(a, 'WIN') ||
-             count(b, 'HIGH') - count(a, 'HIGH') ||
-             (count(a, 'BTM2') + count(a, 'LOW')) - (count(b, 'BTM2') + count(b, 'LOW')) ||
-             a.name.localeCompare(b.name);
+      for (let i = a.placements.length - 1; i >= 0; i--) {
+        const diff = placementRank(a.placements[i]) - placementRank(b.placements[i]);
+        if (diff !== 0) return diff;
+      }
+      return a.name.localeCompare(b.name);
     });
     out.sort(function (a, b) { return b.eliminatedEp - a.eliminatedEp; });
     return inComp.concat(out);
