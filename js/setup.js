@@ -1,8 +1,8 @@
 /* ==========================================================================
    GreenRoom Simulator - setup.js
    The LEFT half of the setup screen: season settings (format, premiere,
-   finale, returning format, twists). Built from SETUP_OPTIONS in
-   js/data/options.js, so adding a setting never needs a change here.
+   finale, ...). Built from SETUP_OPTIONS in js/data/options.js, so adding a
+   setting never needs a change here.
 
    Sections:
      1. Elements and state
@@ -12,7 +12,7 @@
 
    Handy in the browser console (F12):
      Setup.get()    the current settings, e.g.
-                    { format: 'regular', premiere: 'standard', ..., twists: ['assassin'] }
+                    { format: 'regular', premiere: 'regular', finale: 'top3' }
    ========================================================================== */
 
 'use strict';
@@ -58,17 +58,11 @@ const Setup = (function () {
   }
 
   function makeGroup(group) {
-    const details = make('details', 'group');
-    details.open = true;
-    details.dataset.group = group.id;
+    const section = make('section', 'group');
+    section.dataset.group = group.id;
 
-    // Heading row: title, current choice, chevron (the chevron is CSS)
-    const summary = document.createElement('summary');
-    summary.appendChild(make('span', 'group-title', group.label));
-    summary.appendChild(make('span', 'group-value', describe(group)));
-    details.appendChild(summary);
-
-    if (group.help) details.appendChild(make('p', 'group-help', group.help));
+    section.appendChild(make('h4', 'group-title', group.label));
+    if (group.help) section.appendChild(make('p', 'group-help', group.help));
 
     const options = make('div', 'options');
     options.setAttribute('role', group.type === 'multi' ? 'group' : 'radiogroup');
@@ -76,9 +70,9 @@ const Setup = (function () {
     group.choices.forEach(function (choice) {
       options.appendChild(makeChoice(group, choice));
     });
-    details.appendChild(options);
+    section.appendChild(options);
 
-    return details;
+    return section;
   }
 
   function build() {
@@ -95,23 +89,6 @@ const Setup = (function () {
     return SETUP_OPTIONS.find(function (group) { return group.id === id; });
   }
 
-  // Short text for the heading row, e.g. "Regular season" or "2 on"
-  function describe(group) {
-    if (group.type === 'multi') {
-      const count = state[group.id].length;
-      return count === 0 ? 'None' : count + ' on';
-    }
-    const chosen = group.choices.find(function (choice) {
-      return choice.id === state[group.id];
-    });
-    return chosen ? chosen.label : '';
-  }
-
-  function updateSummary(group) {
-    const value = container.querySelector('[data-group="' + group.id + '"] .group-value');
-    if (value) value.textContent = describe(group);
-  }
-
   // Runs whenever any radio button or checkbox changes
   function onChange(event) {
     const input = event.target;
@@ -126,8 +103,6 @@ const Setup = (function () {
     } else {
       state[group.id] = input.value;
     }
-
-    updateSummary(group);
   }
 
   // A copy of the current settings (changing the copy changes nothing)

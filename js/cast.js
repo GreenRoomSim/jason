@@ -2,7 +2,7 @@
    GreenRoom Simulator - cast.js
    The RIGHT half of the setup screen: queen cards, search, random pick and
    the "Your cast" bar.
-   Needs js/data/queens.js (loadQueens, QUEENS, STATS, STAT_MAX) loaded first.
+   Needs js/data/queens.js (loadQueens, QUEENS) loaded first.
 
    Built for a big database: cards are only created when they are shown, in
    batches (see BATCH_SIZE), and photos load lazily as you scroll.
@@ -29,7 +29,7 @@ const Cast = (function () {
 
   /* ---------- 1. Settings ---------- */
   const CAST_SIZE = 12;      // queens needed for a season
-  const BATCH_SIZE = 48;     // cards shown at first, and added by each "Show more"
+  const BATCH_SIZE = 24;     // cards shown at first, and added by each "Show more"
   const SEARCH_DELAY = 120;  // ms to wait after typing before searching
 
 
@@ -79,6 +79,7 @@ const Cast = (function () {
     const card = make('button', 'queen-card');
     card.type = 'button';
     card.dataset.id = queen.id;
+    card.title = queen.name;
     card.setAttribute('aria-pressed', 'false');
 
     // Portrait: photo if there is one, otherwise the CSS silhouette
@@ -94,38 +95,16 @@ const Cast = (function () {
       portrait.appendChild(img);
     }
 
-    // Name (long names are cut after 2 lines; the full name shows on hover)
+    // Name sits over the bottom of the photo (cut after 2 lines if very long)
     const name = make('span', 'queen-name', queen.name);
-    name.title = queen.name;
 
-    // Seasons, e.g. "US S2 · US AS1"
-    const seasons = make('span', 'queen-seasons', queen.seasons.join(' \u00B7 '));
-    seasons.title = queen.seasons.join(', ');
-
-    // One bar per stat
-    const miniStats = make('span', 'mini-stats');
-    STATS.forEach(function (stat) {
-      const value = queen.stats[stat.key];
-
-      const row = make('span', 'mini');
-      row.appendChild(make('span', 'mini-label', stat.label));
-
-      const bar = make('span', 'mini-bar');
-      bar.setAttribute('role', 'img');
-      bar.setAttribute('aria-label', stat.label + ' ' + value + ' out of ' + STAT_MAX);
-      const fill = document.createElement('i');
-      fill.style.width = (value / STAT_MAX * 100) + '%';
-      bar.appendChild(fill);
-
-      row.appendChild(bar);
-      miniStats.appendChild(row);
-    });
+    // Tick shown on picked queens (drawn in CSS)
+    const check = make('span', 'queen-check');
+    check.setAttribute('aria-hidden', 'true');
 
     card.appendChild(portrait);
     card.appendChild(name);
-    card.appendChild(seasons);
-    card.appendChild(miniStats);
-    card.appendChild(make('span', 'queen-badge', 'In cast'));
+    card.appendChild(check);
     return card;
   }
 
