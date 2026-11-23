@@ -4,7 +4,7 @@
    Sections:
      1. Layout (two columns, stacks on small screens)
      2. Season settings panel (left)
-     3. Cast panel (right): search, queen cards, cast bar
+     3. Cast panel (right): search, results, your cast
      4. Accessibility (reduced motion)
    Only the page itself scrolls (no scroll areas inside panels).
    ========================================================================== */
@@ -238,10 +238,19 @@
 /* Queen cards: just the photo with the name over the bottom */
 .queen-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
-  gap: 14px;
-  padding: 6px 6px 10px;           /* room so the picked ring isn't cut off */
+  grid-template-columns: repeat(5, 1fr);     /* 5 wide: 10 results make 2 rows */
+  gap: 10px;
+  padding: 6px 6px 8px;            /* room so the picked ring isn't cut off */
 }
+
+/* Phones: 3 wide so the cards stay easy to tap */
+@media (max-width: 640px) {
+  .queen-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* The results area keeps its height, so the page doesn't jump when the
+   message is replaced by cards */
+.results { min-height: 250px; }
 
 .queen-card {
   position: relative;
@@ -254,11 +263,11 @@
   color: #fff;
   background: transparent;
   border: 0;
-  border-radius: 18px;
+  border-radius: 14px;
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-  box-shadow: 0 6px 14px rgba(18, 58, 43, 0.22);
+  box-shadow: 0 5px 12px rgba(18, 58, 43, 0.22);
   transition: transform 0.14s ease, box-shadow 0.14s ease, opacity 0.14s ease;
 }
 
@@ -348,10 +357,10 @@
   right: 0;
   bottom: 0;
   z-index: 2;
-  padding: 36px 10px 10px;
+  padding: 30px 8px 8px;
   font-family: var(--font-logo);
   font-weight: 800;
-  font-size: 0.95rem;
+  font-size: 0.8rem;
   line-height: 1.12;
   letter-spacing: -0.01em;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
@@ -366,11 +375,11 @@
 .queen-check {
   display: none;
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 6px;
+  right: 6px;
   z-index: 3;
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 0 0 3px #fff;
@@ -379,10 +388,10 @@
 .queen-check::after {
   content: "";
   position: absolute;
-  left: 7px;
-  top: 7px;
-  width: 11px;
-  height: 6px;
+  left: 5px;
+  top: 5px;
+  width: 10px;
+  height: 5px;
   border-left: 3px solid var(--ink-deep);
   border-bottom: 3px solid var(--ink-deep);
   transform: rotate(-45deg);
@@ -390,17 +399,14 @@
 
 .queen-card.is-selected .queen-check { display: block; }
 
-/* "Show more" button under the cards */
-.more-wrap {
-  display: flex;
-  justify-content: center;
-  padding-bottom: 12px;
-}
-
 /* Loading / error / "no results" message */
 .empty-state {
-  margin: 12px 0;
+  min-height: 250px;
+  margin: 0;
   padding: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   font-weight: 700;
   border: 3px dashed rgba(40, 106, 82, 0.4);
@@ -408,11 +414,8 @@
   background: rgba(255, 255, 255, 0.35);
 }
 
-/* Your cast bar (sticks to the bottom of the cast panel) */
+/* Your cast (sits under the search results) */
 .cast-bar {
-  position: sticky;
-  bottom: 16px;
-  z-index: 5;
   display: flex;
   flex-wrap: wrap;
   align-items: center;

@@ -1,20 +1,22 @@
 /* ==========================================================================
    GreenRoom Simulator - cast.js
-   The RIGHT half of the setup screen: queen cards, search, random pick and
-   the "Your cast" bar.
-   Needs js/data/queens.js (loadQueens, QUEENS) loaded first.
+   The RIGHT half of the setup screen: search, random pick, the search results
+   and "Your cast" underneath them.
+   Needs js/data/queens.js (loadQueens, QUEENS, QUEENS_URL) loaded first.
 
-   Built for a big database: cards are only created when they are shown, in
-   batches (see BATCH_SIZE), and photos load lazily as you scroll.
+   How the search works: nothing is shown until you type. Then only the best
+   matches appear (see RESULT_LIMIT), best first. Names that start with what
+   you typed come first, then names with a word that starts with it, then
+   names that contain it anywhere.
 
    Sections:
      1. Settings (edit these)
      2. Elements and state
      3. Messages (loading / errors / no results)
      4. Building the cards
-     5. Showing cards (search + "Show more")
+     5. Search and results
      6. Cast changes (add / remove / random / clear)
-     7. Refreshing the cast bar and cards
+     7. Refreshing the cast and cards
      8. Start-up
 
    Handy in the browser console (F12):
@@ -29,14 +31,14 @@ const Cast = (function () {
 
   /* ---------- 1. Settings ---------- */
   const CAST_SIZE = 12;      // queens needed for a season
-  const BATCH_SIZE = 24;     // cards shown at first, and added by each "Show more"
+  const RESULT_LIMIT = 10;   // search results shown (the grid is 5 wide x 2 tall)
   const SEARCH_DELAY = 120;  // ms to wait after typing before searching
+  const START_MESSAGE = 'Start searching to find your cast.';
 
 
   /* ---------- 2. Elements and state ---------- */
   const grid        = document.getElementById('queen-grid');
   const message     = document.getElementById('grid-message');
-  const moreBtn     = document.getElementById('show-more');
   const searchBox   = document.getElementById('queen-search');
   const randomBtn   = document.getElementById('random-queen');
   const resultsText = document.getElementById('results-count');
@@ -48,9 +50,7 @@ const Cast = (function () {
 
   const cards = new Map();        // queen id -> card element (made on first use)
   const queensById = new Map();   // queen id -> queen data
-  let searchIndex = [];           // [{ queen, text }] with text ready for searching
-  let filtered = [];              // queens matching the current search
-  let shownCount = 0;             // how many of `filtered` are on screen
+  let searchIndex = [];           // [{ queen, text, words }] prepared for searching
   let castIds = [];               // ids picked so far, in order
   let searchTimer = null;
 
@@ -88,7 +88,6 @@ const Cast = (function () {
       const img = document.createElement('img');
       img.src = queen.image;
       img.alt = '';
-      img.loading = 'lazy';
       img.decoding = 'async';
       // Missing photo? Remove the broken image so the silhouette shows instead
       img.addEventListener('error', function () { img.remove(); });
@@ -120,7 +119,7 @@ const Cast = (function () {
   }
 
 
-  /* ---------- 5. Showing cards (search + "Show more") ---------- */
+  /* ---------- 5. Search and results ---------- */
   // "Shéa Couleé" and "Phi Phi O'Hara" become "shea coulee" and "phi phi ohara",
   // so people can search without typing accents or apostrophes.
   function normalize(text) {
@@ -131,56 +130,63 @@ const Cast = (function () {
       .replace(/['\u2019`.]/g, '');        // remove apostrophes and dots
   }
 
-  function updateMoreButton() {
-    const left = filtered.length - shownCount;
-    moreBtn.hidden = left <= 0;
-    if (left > 0) moreBtn.textContent = 'Show more (' + left + ' left)';
+  // How well a prepared queen matches the search: 0 = best, null = no match
+  function matchRank(entry, term) {
+    if (entry.text === term) return 0;                                   // exact name
+    if (entry.text.indexOf(term) === 0) return 1;                        // name starts with it
+    if (entry.words.some(function (word) { return word.indexOf(term) === 0; })) return 2;   // a word starts with it
+    if (entry.text.indexOf(term) !== -1) return 3;                       // contains it
+    return null;
   }
 
-  // Draw the first batch of the current search results
-  function renderGrid() {
-    shownCount = Math.min(BATCH_SIZE, filtered.length);
+  // All matches for a search, best first (ties in A-Z order)
+  function findMatches(term) {
+    const ranked = [];
+    searchIndex.forEach(function (entry) {
+      const rank = matchRank(entry, term);
+      if (rank !== null) ranked.push({ queen: entry.queen, rank: rank });
+    });
+    ranked.sort(function (a, b) {
+      return a.rank - b.rank || a.queen.name.localeCompare(b.queen.name);
+    });
+    return ranked.map(function (item) { return item.queen; });
+  }
 
+  // Put the given queens in the results grid
+  function renderResults(queens) {
     const fragment = document.createDocumentFragment();
-    for (let i = 0; i < shownCount; i++) {
-      fragment.appendChild(getCard(filtered[i]));
-    }
+    queens.forEach(function (queen) { fragment.appendChild(getCard(queen)); });
     grid.textContent = '';
     grid.appendChild(fragment);
-
-    if (filtered.length === 0) {
-      showMessage('No queens match your search. Check the spelling or try fewer letters.');
-    } else {
-      hideMessage();
-    }
-    updateMoreButton();
-  }
-
-  // Add the next batch below the cards already shown
-  function showMore() {
-    const from = shownCount;
-    shownCount = Math.min(shownCount + BATCH_SIZE, filtered.length);
-
-    const fragment = document.createDocumentFragment();
-    for (let i = from; i < shownCount; i++) {
-      fragment.appendChild(getCard(filtered[i]));
-    }
-    grid.appendChild(fragment);
-    updateMoreButton();
   }
 
   function applySearch() {
     const term = normalize(searchBox.value.trim());
 
-    filtered = searchIndex
-      .filter(function (entry) { return term === '' || entry.text.indexOf(term) !== -1; })
-      .map(function (entry) { return entry.queen; });
+    // Nothing typed yet: empty results with a prompt
+    if (term === '') {
+      renderResults([]);
+      resultsText.textContent = '';
+      showMessage(START_MESSAGE);
+      return;
+    }
 
-    resultsText.textContent = term === ''
-      ? QUEENS.length + ' queens'
-      : filtered.length + ' of ' + QUEENS.length + ' queens match';
+    const matches = findMatches(term);
+    renderResults(matches.slice(0, RESULT_LIMIT));
 
-    renderGrid();
+    if (matches.length === 0) {
+      resultsText.textContent = '';
+      showMessage('No queens match your search. Check the spelling or try fewer letters.');
+      return;
+    }
+
+    hideMessage();
+    if (matches.length > RESULT_LIMIT) {
+      resultsText.textContent = 'Showing the top ' + RESULT_LIMIT + ' of ' + matches.length +
+                                ' matches. Keep typing to narrow it down.';
+    } else {
+      resultsText.textContent = matches.length === 1 ? '1 match' : matches.length + ' matches';
+    }
   }
 
 
@@ -188,7 +194,7 @@ const Cast = (function () {
   function isInCast(id) { return castIds.indexOf(id) !== -1; }
   function isFull()     { return castIds.length >= CAST_SIZE; }
 
-  function announce(message) { statusText.textContent = message; }
+  function announce(text) { statusText.textContent = text; }
 
   function add(id) {
     if (isInCast(id) || isFull()) return false;
@@ -223,11 +229,9 @@ const Cast = (function () {
     const pick = pool[Math.floor(Math.random() * pool.length)];
     add(pick.id);
 
-    // Show which queen was picked, if her card is on screen right now
+    // If her card happens to be in the results, give it a little pop
     const card = cards.get(pick.id);
     if (card && card.isConnected) {
-      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      card.scrollIntoView({ block: 'center', behavior: reduceMotion ? 'auto' : 'smooth' });
       card.classList.add('just-added');
       card.addEventListener('animationend', function () {
         card.classList.remove('just-added');
@@ -236,7 +240,7 @@ const Cast = (function () {
   }
 
 
-  /* ---------- 7. Refreshing the cast bar and cards ---------- */
+  /* ---------- 7. Refreshing the cast and cards ---------- */
   // Make one card show whether its queen is picked (and lock it if the cast is full)
   function syncCard(card, id) {
     const selected = isInCast(id);
@@ -249,7 +253,7 @@ const Cast = (function () {
     chipList.textContent = '';
 
     if (castIds.length === 0) {
-      chipList.appendChild(make('li', 'cast-hint', 'No queens yet. Pick a card or hit Random queen.'));
+      chipList.appendChild(make('li', 'cast-hint', 'No queens yet. Search for one or hit Random queen.'));
       return;
     }
 
@@ -284,7 +288,8 @@ const Cast = (function () {
       queensById.set(queen.id, queen);
     });
     searchIndex = QUEENS.map(function (queen) {
-      return { queen: queen, text: normalize(queen.name) };
+      const text = normalize(queen.name);
+      return { queen: queen, text: text, words: text.split(' ') };
     });
     applySearch();
     refresh();
@@ -305,13 +310,13 @@ const Cast = (function () {
     showMessage('Loading queens\u2026');
     loadQueens().then(start).catch(showLoadError);
 
-    // Click a card to add/remove that queen
+    // Click a result card to add/remove that queen
     grid.addEventListener('click', function (event) {
       const card = event.target.closest('.queen-card');
       if (card && !card.disabled) toggle(card.dataset.id);
     });
 
-    // Click a chip in the cast bar to remove that queen
+    // Click a chip in "Your cast" to remove that queen
     chipList.addEventListener('click', function (event) {
       const chip = event.target.closest('.chip');
       if (chip) remove(chip.dataset.id);
@@ -326,11 +331,10 @@ const Cast = (function () {
       if (event.key === 'Escape') {          // Escape clears the search box
         clearTimeout(searchTimer);
         searchBox.value = '';
-        applySearch();
+        if (searchIndex.length) applySearch();
       }
     });
 
-    moreBtn.addEventListener('click', showMore);
     randomBtn.addEventListener('click', addRandom);
     clearBtn.addEventListener('click', clear);
 
