@@ -238,6 +238,9 @@
 /* Queen cards: just the photo with the name over the bottom */
 .queen-grid {
   display: grid;
+  --name-size: 0.78rem;                      /* name text: normal / long / very long names */
+  --name-size-long: 0.7rem;
+  --name-size-xlong: 0.62rem;
   grid-template-columns: repeat(5, 1fr);     /* 5 wide: 10 results make 2 rows */
   gap: 10px;
   padding: 6px 6px 8px;            /* room so the picked ring isn't cut off */
@@ -357,19 +360,24 @@
   right: 0;
   bottom: 0;
   z-index: 2;
-  padding: 30px 8px 8px;
+  padding: 34px 7px 8px;
   font-family: var(--font-logo);
   font-weight: 800;
-  font-size: 0.8rem;
+  font-size: var(--name-size);
   line-height: 1.12;
+  overflow-wrap: anywhere;          /* safety net: never let a long word run off the card */
   letter-spacing: -0.01em;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
   background: linear-gradient(to top, rgba(10, 36, 26, 0.92) 0%, rgba(10, 36, 26, 0.6) 55%, rgba(10, 36, 26, 0) 100%);
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;            /* very long names are cut after 2 lines */
+  -webkit-line-clamp: 3;            /* names can use up to 3 lines */
   overflow: hidden;
 }
+
+/* Longer names get smaller text so they fit fully (set in js/cast.js) */
+.queen-name.is-long  { font-size: var(--name-size-long); }
+.queen-name.is-xlong { font-size: var(--name-size-xlong); }
 
 /* Tick in the corner of picked queens */
 .queen-check {
@@ -470,69 +478,41 @@
   opacity: 0.75;
 }
 
-/* 6 spots across, 2 rows = 12 spots */
+/* 4 cards across, so every queen is big and easy to see. The box simply
+   grows as queens are added (and hides the grid while it is empty). */
 .cast-grid {
+  --name-size: 0.9rem;
+  --name-size-long: 0.8rem;
+  --name-size-xlong: 0.7rem;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
   padding: 2px;
 }
+
+.cast-grid:empty { display: none; }
 
 @media (max-width: 640px) {
   .cast-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
-/* Cards in the cast use the same look as the results, just smaller text */
-.cast-grid .queen-name {
-  padding: 22px 6px 6px;
-  font-size: 0.66rem;
-}
-
 /* Small "x" in the corner: click the card to remove her */
 .queen-remove {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 6px;
+  right: 6px;
   z-index: 3;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 800;
-  line-height: 19px;
+  line-height: 22px;
   text-align: center;
   color: var(--ink-deep);
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
-
-/* An empty numbered spot */
-.cast-slot {
-  position: relative;
-  border: 2px dashed rgba(40, 106, 82, 0.35);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.cast-slot::before {               /* same 4:5 shape as a card */
-  content: "";
-  display: block;
-  padding-top: 125%;
-}
-
-.cast-slot-number {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-logo);
-  font-weight: 800;
-  font-size: 1.1rem;
-  color: var(--ink);
-  opacity: 0.35;
-}
-
 
 /* ---------- 4. Accessibility ---------- */
 @media (prefers-reduced-motion: reduce) {

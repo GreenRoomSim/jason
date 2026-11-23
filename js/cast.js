@@ -22,7 +22,7 @@
    Handy in the browser console (F12):
      Cast.get()         ids of the queens picked so far
      Cast.getQueens()   the full queen objects picked so far
-     Cast.size          how many queens the cast needs
+     Cast.min / Cast.max   fewest / most queens allowed in the cast
    ========================================================================== */
 
 'use strict';
@@ -30,7 +30,8 @@
 const Cast = (function () {
 
   /* ---------- 1. Settings ---------- */
-  const CAST_SIZE = 12;      // queens needed for a season
+  const CAST_MIN = 8;        // fewest queens you can start a season with
+  const CAST_MAX = 14;       // most queens you can pick
   const RESULT_LIMIT = 10;   // search results shown (the grid is 5 wide x 2 tall)
   const SEARCH_DELAY = 120;  // ms to wait after typing before searching
   const START_MESSAGE = 'Start searching to find your cast.';
@@ -92,6 +93,24 @@ const Cast = (function () {
     return portrait;
   }
 
+  // The name over the bottom of a card. Long names get smaller text so they
+  // fit fully, and CamelCase names (ExclamationPoint) may break between words.
+  function makeNameLabel(queen) {
+    const label = make('span', 'queen-name');
+    label.textContent = queen.name.replace(/([a-z\u00E0-\u00FF])([A-Z])/g, '$1\u200B$2');
+
+    // Longest piece that can't be split across lines (pieces end at spaces, hyphens, CamelCase)
+    const pieces = queen.name
+      .replace(/([a-z\u00E0-\u00FF])([A-Z])/g, '$1 $2')
+      .replace(/-/g, '- ')
+      .split(/\s+/);
+    const longest = Math.max.apply(null, pieces.map(function (piece) { return piece.length; }));
+
+    if (longest >= 12) label.classList.add('is-xlong');
+    else if (longest >= 10 || queen.name.length >= 19) label.classList.add('is-long');
+    return label;
+  }
+
   // Card in the search results: click to add or remove her
   function makeCard(queen) {
     const card = make('button', 'queen-card');
@@ -105,7 +124,7 @@ const Cast = (function () {
     check.setAttribute('aria-hidden', 'true');
 
     card.appendChild(makePortrait(queen));
-    card.appendChild(make('span', 'queen-name', queen.name));
+    card.appendChild(makeNameLabel(queen));
     card.appendChild(check);
     return card;
   }
@@ -122,17 +141,9 @@ const Cast = (function () {
     x.setAttribute('aria-hidden', 'true');
 
     card.appendChild(makePortrait(queen));
-    card.appendChild(make('span', 'queen-name', queen.name));
+    card.appendChild(makeNameLabel(queen));
     card.appendChild(x);
     return card;
-  }
-
-  // An empty spot in the cast, numbered
-  function makeEmptySlot(number) {
-    const slot = make('div', 'cast-slot');
-    slot.setAttribute('aria-hidden', 'true');
-    slot.appendChild(make('span', 'cast-slot-number', String(number)));
-    return slot;
   }
 
   // The card for a queen: made the first time it is needed, then reused
@@ -220,7 +231,7 @@ const Cast = (function () {
 
   /* ---------- 6. Cast changes ---------- */
   function isInCast(id) { return castIds.indexOf(id) !== -1; }
-  function isFull()     { return castIds.length >= CAST_SIZE; }
+  function isFull()     { return castIds.length >= CAST_MAX; }
 
   function announce(text) { statusText.textContent = text; }
 
@@ -228,7 +239,7 @@ const Cast = (function () {
     if (isInCast(id) || isFull()) return false;
     castIds.push(id);
     refresh();
-    announce('Added ' + queensById.get(id).name + '. ' + castIds.length + ' of ' + CAST_SIZE + ' picked.');
+    announce('Added ' + queensById.get(id).name + '. ' + castIds.length + ' in your cast.');
     return true;
   }
 
@@ -236,7 +247,7 @@ const Cast = (function () {
     if (!isInCast(id)) return;
     castIds = castIds.filter(function (castId) { return castId !== id; });
     refresh();
-    announce('Removed ' + queensById.get(id).name + '. ' + castIds.length + ' of ' + CAST_SIZE + ' picked.');
+    announce('Removed ' + queensById.get(id).name + '. ' + castIds.length + ' in your cast.');
   }
 
   function toggle(id) {
@@ -277,27 +288,38 @@ const Cast = (function () {
     card.disabled = isFull() && !selected;
   }
 
-  // Draw "Your cast": a card for each queen picked, empty numbered spots for the rest
+  // The line of help under the "Your cast" title
+  function hintText() {
+    const n = castIds.length;
+    if (n === 0) {
+      return 'Pick ' + CAST_MIN + ' to ' + CAST_MAX + ' queens. Search for one or hit Random queen.';
+    }
+    if (n < CAST_MIN) {
+      const more = CAST_MIN - n;
+      return 'Pick ' + more + ' more queen' + (more === 1 ? '' : 's') + ' to continue. Click a card to remove her.';
+    }
+    if (n < CAST_MAX) {
+      return 'You can continue, or add up to ' + (CAST_MAX - n) + ' more. Click a card to remove her.';
+    }
+    return 'Your cast is full. Click a card to remove her.';
+  }
+
+  // Draw "Your cast": a card for each queen picked (the box grows as she is added)
   function renderCast() {
     const fragment = document.createDocumentFragment();
 
-    for (let i = 0; i < CAST_SIZE; i++) {
-      const id = castIds[i];
-      if (id === undefined) {
-        fragment.appendChild(makeEmptySlot(i + 1));
-        continue;
-      }
+    castIds.forEach(function (id) {
       let card = castCards.get(id);
       if (!card) {
         card = makeCastCard(queensById.get(id));
         castCards.set(id, card);
       }
       fragment.appendChild(card);
-    }
+    });
 
     castGrid.textContent = '';
     castGrid.appendChild(fragment);
-    castHint.hidden = castIds.length > 0;
+    castHint.textContent = hintText();
   }
 
   function refresh() {
@@ -306,10 +328,10 @@ const Cast = (function () {
     cards.forEach(function (card, id) { syncCard(card, id); });
 
     renderCast();
-    countText.textContent = castIds.length + ' / ' + CAST_SIZE;
+    countText.textContent = castIds.length + ' / ' + CAST_MAX;
     randomBtn.disabled = full || QUEENS.length === 0;
     clearBtn.disabled = castIds.length === 0;
-    continueBtn.disabled = !full;
+    continueBtn.disabled = castIds.length < CAST_MIN;
   }
 
 
@@ -380,7 +402,8 @@ const Cast = (function () {
     init: init,
     get: function () { return castIds.slice(); },
     getQueens: function () { return castIds.map(function (id) { return queensById.get(id); }); },
-    size: CAST_SIZE
+    min: CAST_MIN,
+    max: CAST_MAX
   };
 
 })();
