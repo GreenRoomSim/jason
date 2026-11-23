@@ -82,6 +82,21 @@ const GRX_CONFIG = {
     { minQueens: 4, safe: 0,      top: 2, bottom: 2 }
   ],
 
-  /* Season stops here (finale rules come later). */
-  finaleAt: 3
+  /* Regular episodes stop when this many queens are left; those queens are
+     the finalists. Used if the Finale setting isn't recognised. */
+  finaleAt: 3,
+
+  /* Finalists per Finale setting (ids from data/options.js). */
+  finaleSizes: { top3: 3, top4: 4, crown: 3 },
+
+  /* How the winner is chosen. All finalists lip sync, and each gets
+       total = lip sync roll * lipSyncShare + season "resume" * (1 - lipSyncShare)
+     where resume = average stat + wins * winBonus - BTM2s * btm2Penalty + a
+     random roll. Raise lipSyncShare to make the final lip sync matter more,
+     lower it to reward the queen with the stronger season. */
+  finale: {
+    lipSyncShare: 0.5,
+    winBonus: 0.5,
+    btm2Penalty: 0.25
+  }
 };

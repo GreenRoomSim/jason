@@ -296,12 +296,12 @@ const Cast = (function () {
     }
     if (n < CAST_MIN) {
       const more = CAST_MIN - n;
-      return 'Pick ' + more + ' more queen' + (more === 1 ? '' : 's') + ' to continue. Click a card to remove her.';
+      return 'Pick ' + more + ' more queen' + (more === 1 ? '' : 's') + ' to continue. Click a card to remove them.';
     }
     if (n < CAST_MAX) {
-      return 'You can continue, or add up to ' + (CAST_MAX - n) + ' more. Click a card to remove her.';
+      return 'You can continue, or add up to ' + (CAST_MAX - n) + ' more. Click a card to remove them.';
     }
-    return 'Your cast is full. Click a card to remove her.';
+    return 'Your cast is full. Click a card to remove them.';
   }
 
   // Draw "Your cast": a card for each queen picked (the box grows as she is added)

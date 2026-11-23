@@ -22,7 +22,8 @@ const TrackRecord = (function () {
 
   const PLACEMENT_CLASS = {
     WIN: 'p-win', HIGH: 'p-high', SAFE: 'p-safe',
-    LOW: 'p-low', BTM2: 'p-btm', ELIM: 'p-elim'
+    LOW: 'p-low', BTM2: 'p-btm', ELIM: 'p-elim',
+    WINNER: 'p-winner', 'RUNNER UP': 'p-runner', GUEST: 'p-guest'
   };
 
   function make(tag, className, text) {
@@ -70,6 +71,7 @@ const TrackRecord = (function () {
     const out = season.queens.filter(function (q) { return q.status !== 'active'; });
 
     inComp.sort(function (a, b) {
+      if (season.finale) return a.finalRank - b.finalRank;     // after the finale: winner first
       for (let i = a.placements.length - 1; i >= 0; i--) {
         const diff = placementRank(a.placements[i]) - placementRank(b.placements[i]);
         if (diff !== 0) return diff;
@@ -81,7 +83,10 @@ const TrackRecord = (function () {
   }
 
   function rankLabel(season, queen) {
-    if (queen.status === 'active') return 'TBA';
+    if (queen.status === 'active') {
+      if (!season.finale) return 'TBA';
+      return queen.finalRank === 1 ? 'Winner' : 'Runner-up';
+    }
     const log = season.episodes[queen.eliminatedEp - 1];
     return log ? ordinal(log.queensLeft) : '';
   }
@@ -95,6 +100,7 @@ const TrackRecord = (function () {
     const cols = make('colgroup');
     ['col-rank', 'col-name', 'col-photo'].forEach(function (c) { cols.appendChild(make('col', c)); });
     episodes.forEach(function () { cols.appendChild(make('col', 'col-ep')); });
+    if (season.finale) cols.appendChild(make('col', 'col-finale'));
     table.appendChild(cols);
 
     // Header: row 1 = Rank / Contestant / Ep. N, row 2 = challenge names
@@ -114,6 +120,10 @@ const TrackRecord = (function () {
       main.appendChild(make('th', null, 'Ep. ' + log.episode));
       sub.appendChild(make('th', null, challengeName(log)));
     });
+    if (season.finale) {
+      main.appendChild(make('th', null, 'Finale'));
+      sub.appendChild(make('th', null, 'Lip Sync'));
+    }
     thead.appendChild(main);
     thead.appendChild(sub);
     table.appendChild(thead);
@@ -142,6 +152,14 @@ const TrackRecord = (function () {
           ? make('td', PLACEMENT_CLASS[placement] || '', placement)
           : make('td', 'p-gone'));
       });
+
+      // Finale column: finalists WINNER / RUNNER UP, everyone else GUEST
+      if (season.finale) {
+        const fin = queen.status === 'active'
+          ? (queen.finalRank === 1 ? 'WINNER' : 'RUNNER UP')
+          : 'GUEST';
+        row.appendChild(make('td', PLACEMENT_CLASS[fin], fin));
+      }
       tbody.appendChild(row);
     });
     table.appendChild(tbody);

@@ -33,6 +33,12 @@ const GRX = (function () {
     return row ? row.cap : 3;
   }
 
+  // How many queens are left when the regular episodes stop (the finalists)
+  function finaleSizeFor(settings) {
+    const size = settings && C.finaleSizes ? C.finaleSizes[settings.finale] : null;
+    return size || C.finaleAt;
+  }
+
   function newSeason(queens, settings) {
     return {
       rng: Math.random,
@@ -40,7 +46,7 @@ const GRX = (function () {
       episode: 1,
       queens: queens.map(function (q) {
         return { id: q.id, name: q.name, stats: q.stats, status: 'active',
-                 placements: [], lipSyncs: 0, wins: 0, eliminatedEp: null };
+                 placements: [], lipSyncs: 0, wins: 0, eliminatedEp: null, finalRank: null };
       }),
       challengeHistory: [],
       btm2Cap: btm2CapFor(queens.length),   // BTM2 appearances that get a queen sent home
@@ -49,6 +55,9 @@ const GRX = (function () {
       songHistory: [],        // lip sync song ids used so far
       eliminated: [],
       episodes: [],
+      finaleAt: finaleSizeFor(settings),    // queens left when the finale begins
+      finale: null,                         // the finale log, once it has been run
+      winner: null,                         // id of the winner, once the finale has been run
       done: false
     };
   }
@@ -203,7 +212,7 @@ const GRX = (function () {
     const log = { episode: state.episode, queensLeft: n, events: events };
     state.episodes.push(log);
     state.episode++;
-    if (activeQueens(state).length <= C.finaleAt) state.done = true;   // finale: later
+    if (activeQueens(state).length <= state.finaleAt) state.done = true;   // finale: see runFinale
     return log;
   }
 
@@ -216,6 +225,49 @@ const GRX = (function () {
   function runSeason(state) {
     while (!state.done) runEpisode(state);
     return state;
+  }
+
+
+  /* ---------- The finale ---------- */
+  // Runs once the regular episodes are done (state.done). Every finalist lip
+  // syncs; the best total (see GRX_CONFIG.finale) is crowned, the rest are
+  // runners-up. Returns a log (and stores it in state.finale):
+  //   { finale: true, finalists: [ids], guests: [ids, in elimination order],
+  //     song, winner: id, runnersUp: [ids, best first] }
+  function runFinale(state) {
+    if (state.finale) return state.finale;
+    if (!state.done) return null;
+
+    const F = C.finale;
+    const ids = function (list) { return list.map(function (q) { return q.id; }); };
+    const finalists = activeQueens(state);
+
+    const scored = finalists.map(function (q) {
+      const statAvg = Object.keys(q.stats).reduce(function (s, k) { return s + q.stats[k]; }, 0) /
+                      Object.keys(q.stats).length;
+      const resume = statAvg + q.wins * F.winBonus - q.lipSyncs * F.btm2Penalty + gauss(state.rng) * C.chaos;
+      const sync = roll(state, q, { lipSync: 1 }, C.lipSyncChaos);
+      return { q: q, total: sync * F.lipSyncShare + resume * (1 - F.lipSyncShare) };
+    }).sort(function (a, b) { return b.total - a.total; });
+
+    const song = pickFresh(state, typeof LIPSYNC_SONGS !== 'undefined' ? LIPSYNC_SONGS : [], state.songHistory);
+
+    scored.forEach(function (item, i) {
+      item.q.finalRank = i + 1;
+      item.q.placements.push(i === 0 ? 'WINNER' : 'RUNNER UP');
+    });
+
+    const log = {
+      finale: true,
+      finalists: ids(finalists),
+      guests: state.eliminated.map(function (e) { return e.id; }),
+      song: song ? { id: song.id, title: song.title, artist: song.artist } : null,
+      winner: scored[0].q.id,
+      runnersUp: ids(scored.slice(1).map(function (s) { return s.q; }))
+    };
+    state.winner = log.winner;
+    state.finale = log;
+    return log;
   }
 
 
@@ -250,7 +302,7 @@ const GRX = (function () {
     return table.sort(function (a, b) { return b.final3Pct - a.final3Pct; });
   }
 
-  return { newSeason: newSeason, runEpisode: runEpisode, runSeason: runSeason,
+  return { newSeason: newSeason, runEpisode: runEpisode, runSeason: runSeason, runFinale: runFinale,
            simulate: simulate, getEpisodeShape: getEpisodeShape };
 
 })();
