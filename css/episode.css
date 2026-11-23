@@ -78,6 +78,7 @@
 }
 .scene-tag.safe { color: #000; background: #fff; }
 .scene-tag.high { color: #000; background: #add8e6; }
+.scene-tag.top2 { color: #000; background: #00bfff; font-weight: 800; }
 .scene-tag.win  { color: #fff; background: #4169e1; font-weight: 800; font-size: 1.2rem;
                   box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25), 0 0 22px rgba(65, 105, 225, 0.55); }
 .scene-tag.low  { color: #000; background: #ea9999; }

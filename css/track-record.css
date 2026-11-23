@@ -26,6 +26,7 @@
 
   /* Placement colours (same as the episode screens) */
   --tr-win:  #4169e1;
+  --tr-top2: #00bfff;
   --tr-high: #add8e6;
   --tr-safe: #fafafa;
   --tr-low:  #ffb6c1;
@@ -131,6 +132,7 @@
 
 /* ---------- 3. Placement cells ---------- */
 .p-win  { background: var(--tr-win);  color: #fff; font-weight: 900; }
+.p-top2 { background: var(--tr-top2); font-weight: 900; }
 .p-high { background: var(--tr-high); }
 .p-safe { background: var(--tr-safe); }
 .p-low  { background: var(--tr-low); }

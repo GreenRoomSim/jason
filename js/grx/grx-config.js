@@ -51,6 +51,20 @@ const GRX_CONFIG = {
      her chance of being in the tops is unchanged. 1 = no effect, 0 = never. */
   repeatWinChance: 0.4,
 
+  /* Premiere formats (ids from data/options.js). Nobody goes home in a
+     premiere. The TOP 2 queens of each premiere episode lip sync for the win:
+     the winner gets a WIN, the loser gets TOP2.
+       tops:    queens in the top of the week (includes the top 2; the
+                other tops are HIGH, everyone else is SAFE)
+       episodes: how many premiere episodes there are
+       minCast: smallest cast allowed (a smaller cast falls back to top2)
+     split: half the cast enters in episode 1, the other half in episode 2.
+     Eliminations start the episode after the premiere(s). */
+  premieres: {
+    top2:  { episodes: 1, tops: 5 },
+    split: { episodes: 2, tops: 4, minCast: 13 }   // "over 12 queens"
+  },
+
   /* Runway is judged on this stat mix. */
   runwayWeights: { design: 1 },
 
