@@ -1,0 +1,8 @@
+Homescreen UI: the GreenRoom title, a Start button, placeholder styling. Just the look.
+Navigation shell: clicking Start moves to an empty placeholder screen, so we can see how screens flow.
+Cast selection UI: search bar, random button, queen cards with placeholder names, pictures and stats. Fake data only.
+Queen database format: the real data structure (name, image path, stats), and wiring up search and random.
+Episode UI: the layout for a challenge, runway, judging and elimination, still with placeholder text.
+Simulation engine: stats actually drive results, starting with one challenge, then a full episode.
+Full season loop: episode by episode, finale, winner screen.
+Immersion pass: pacing, text variety, sound or small animations, plus a performance check on slow devices.

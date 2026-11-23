@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GreenRoom Simulator</title>
+
+  <!-- Fonts: Outfit (logo/titles) and Manrope (buttons/text). Falls back to system fonts if offline. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@700&family=Outfit:wght@800&display=swap" rel="stylesheet">
+
+  <!-- Styles (each file covers one area, see the notes at the top of each) -->
+  <link rel="stylesheet" href="css/base.css">     <!-- colours, buttons, screen switching -->
+  <link rel="stylesheet" href="css/home.css">     <!-- home screen -->
+  <link rel="stylesheet" href="css/pages.css">    <!-- page headers + placeholder pages -->
+  <link rel="stylesheet" href="css/setup.css">    <!-- setup screen (settings + cast) -->
+</head>
+<body>
+
+  <!-- ==========================================================
+       SCREENS
+       Each screen is a <section class="screen" data-screen="name">.
+       Only the one with class "is-active" is visible.
+       Buttons with data-goto="name" switch to that screen
+       (handled in js/main.js + js/navigation.js).
+       The page address shows the screen too (e.g. index.html#setup),
+       so the browser Back button works and you can jump straight
+       to a screen while editing.
+       ========================================================== -->
+
+
+  <!-- ============ HOME ============ -->
+  <section class="screen screen--home is-active" data-screen="home">
+
+    <!-- Logo -->
+    <div class="brand">
+      <h1 class="wordmark">GreenRoom<i class="dot"></i></h1>
+      <p class="tag">simulator</p>
+    </div>
+
+    <!-- Main menu -->
+    <nav class="menu" aria-label="Main menu">
+      <button class="btn start" data-goto="setup" data-autofocus>Start</button>
+      <div class="row">
+        <button class="btn minor" data-goto="changelog">Changelog</button>
+        <button class="btn minor" data-goto="suggest">Suggest a feature</button>
+        <button class="btn minor" data-goto="credits">Credits</button>
+      </div>
+    </nav>
+
+  </section>
+
+
+  <!-- ============ SETUP (opened by Start) ============
+       LEFT:  season settings (format, premiere, finale, returning format, twists)
+              built by js/setup.js from js/data/options.js
+       RIGHT: cast (search, random, queen cards, cast bar)
+              built by js/cast.js from js/data/queens.js
+       ============================================================ -->
+  <section class="screen screen--setup" data-screen="setup" aria-labelledby="title-setup">
+    <div class="page-top">
+      <button class="btn back" data-goto="home">Back</button>
+    </div>
+    <div class="page-head">
+      <h2 class="page-title" id="title-setup" tabindex="-1" data-autofocus>Set up your season</h2>
+      <p class="page-sub">Choose the format on the left, then your cast on the right.</p>
+    </div>
+
+    <div class="setup-body">
+
+      <!-- LEFT: season settings -->
+      <aside class="settings-panel" aria-label="Season settings">
+        <h3 class="panel-title">Season settings</h3>
+        <p class="settings-note">These options are placeholders for now. They are recorded, but don't change the season yet.</p>
+        <div id="settings"></div>
+      </aside>
+
+      <!-- RIGHT: cast -->
+      <div class="cast-panel">
+        <h3 class="panel-title">Cast</h3>
+
+        <div class="cast-toolbar">
+          <input class="search" id="queen-search" type="search" placeholder="Search queens" aria-label="Search queens" autocomplete="off">
+          <button class="btn random" id="random-queen">Random queen</button>
+        </div>
+        <p class="results-count" id="results-count" aria-live="polite"></p>
+
+        <!-- Loading / error / "no results" message (filled in by js/cast.js) -->
+        <p class="empty-state" id="grid-message" hidden></p>
+
+        <div class="queen-grid" id="queen-grid"></div>
+        <div class="more-wrap">
+          <button class="btn small" id="show-more" hidden>Show more</button>
+        </div>
+
+        <!-- Your cast: sticks to the bottom of the screen -->
+        <div class="cast-bar" role="region" aria-label="Your cast">
+          <div class="cast-bar-head">
+            <span class="cast-bar-title">Your cast</span>
+            <span class="cast-count" id="cast-count"></span>
+          </div>
+          <ul class="cast-chips" id="cast-chips"></ul>
+          <div class="cast-bar-actions">
+            <button class="btn small" id="cast-clear">Clear</button>
+            <button class="btn small" id="cast-continue" disabled>Continue</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Read out by screen readers when the cast changes -->
+    <p class="sr-only" id="cast-status" aria-live="polite"></p>
+  </section>
+
+
+  <!-- ============ CHANGELOG ============ -->
+  <section class="screen screen--page" data-screen="changelog" aria-labelledby="title-changelog">
+    <div class="page-top">
+      <button class="btn back" data-goto="home">Back</button>
+    </div>
+    <h2 class="page-title" id="title-changelog" tabindex="-1" data-autofocus>Changelog</h2>
+    <div class="placeholder-card">
+      <p>Version history will show up here.</p>
+    </div>
+  </section>
+
+
+  <!-- ============ SUGGEST A FEATURE ============ -->
+  <section class="screen screen--page" data-screen="suggest" aria-labelledby="title-suggest">
+    <div class="page-top">
+      <button class="btn back" data-goto="home">Back</button>
+    </div>
+    <h2 class="page-title" id="title-suggest" tabindex="-1" data-autofocus>Suggest a feature</h2>
+    <div class="placeholder-card">
+      <p>A way to send feature ideas will go here.</p>
+    </div>
+  </section>
+
+
+  <!-- ============ CREDITS ============ -->
+  <section class="screen screen--page" data-screen="credits" aria-labelledby="title-credits">
+    <div class="page-top">
+      <button class="btn back" data-goto="home">Back</button>
+    </div>
+    <h2 class="page-title" id="title-credits" tabindex="-1" data-autofocus>Credits</h2>
+    <div class="placeholder-card">
+      <p>Credits will go here.</p>
+    </div>
+  </section>
+
+
+  <!-- Scripts (defer = run after the page has loaded, in this order) -->
+  <script src="js/data/queens.js" defer></script>
+  <script src="js/data/options.js" defer></script>
+  <script src="js/navigation.js" defer></script>
+  <script src="js/setup.js" defer></script>
+  <script src="js/cast.js" defer></script>
+  <script src="js/main.js" defer></script>
+</body>
+</html>
