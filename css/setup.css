@@ -414,84 +414,43 @@
   background: rgba(255, 255, 255, 0.35);
 }
 
-/* Your cast (sits under the search results) */
-.cast-bar {
+/* Your cast: a light card like the season settings, holding a card per queen */
+.cast-box {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: clamp(18px, 2.4vw, 28px);
+  background: rgba(255, 255, 255, 0.45);
+  border: 2px solid rgba(40, 106, 82, 0.18);
+  border-radius: 28px;
+  box-shadow: 0 8px 20px rgba(18, 58, 43, 0.12);
+}
+
+.cast-box-head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 14px 20px;
-  padding: 16px 20px 20px;
-  color: var(--pale);
-  background: var(--ink-edge);
-  border-radius: 22px;
-  box-shadow: 0 10px 28px rgba(18, 58, 43, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.2);
+  gap: 12px 16px;
+  padding-bottom: 6px;             /* room for the buttons' 3D underside */
 }
 
-.cast-bar .btn { --edge: #0e2c21; }
-
-.cast-bar-head {
+.cast-box-title {
   display: flex;
   align-items: baseline;
   gap: 12px;
-}
-
-.cast-bar-title {
-  font-family: var(--font-logo);
-  font-weight: 800;
-  font-size: 1.3rem;
+  margin-right: auto;
 }
 
 .cast-count {
+  font-family: var(--font-logo);
   font-weight: 800;
-  color: var(--mint);
+  font-size: 1.2rem;
+  color: var(--accent-edge);
 }
 
-.cast-chips {
-  flex: 1 1 260px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.cast-hint {
-  font-weight: 700;
-  opacity: 0.85;
-}
-
-.chip {
-  font: inherit;
-  font-weight: 700;
-  font-size: 0.8rem;
-  padding: 5px 11px;
-  color: var(--pale);
-  background: rgba(255, 255, 255, 0.16);
-  border: 0;
-  border-radius: 999px;
-  cursor: pointer;
-  touch-action: manipulation;
-  transition: background 0.14s ease, color 0.14s ease;
-}
-
-.chip:focus-visible {
-  color: var(--ink-deep);
-  background: var(--accent);
-  outline: none;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .chip:hover {
-    color: var(--ink-deep);
-    background: var(--accent);
-  }
-}
-
-.cast-bar-actions {
+.cast-box-actions {
   display: flex;
   gap: 12px;
-  margin-left: auto;
 }
 
 .btn.small {
@@ -502,9 +461,81 @@
   border-radius: 14px;
 }
 
+.cast-hint {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--ink);
+  opacity: 0.75;
+}
+
+/* 6 spots across, 2 rows = 12 spots */
+.cast-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  padding: 2px;
+}
+
+@media (max-width: 640px) {
+  .cast-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* Cards in the cast use the same look as the results, just smaller text */
+.cast-grid .queen-name {
+  padding: 22px 6px 6px;
+  font-size: 0.66rem;
+}
+
+/* Small "x" in the corner: click the card to remove her */
+.queen-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 3;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 19px;
+  text-align: center;
+  color: var(--ink-deep);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* An empty numbered spot */
+.cast-slot {
+  position: relative;
+  border: 2px dashed rgba(40, 106, 82, 0.35);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.cast-slot::before {               /* same 4:5 shape as a card */
+  content: "";
+  display: block;
+  padding-top: 125%;
+}
+
+.cast-slot-number {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-logo);
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--ink);
+  opacity: 0.35;
+}
+
 
 /* ---------- 4. Accessibility ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .queen-card, .chip, .search, .opt-box, .opt-box::before { transition: none; }
+  .queen-card, .search, .opt-box, .opt-box::before { transition: none; }
   .queen-card.just-added { animation: none; }
 }

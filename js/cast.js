@@ -1,7 +1,7 @@
 /* ==========================================================================
    GreenRoom Simulator - cast.js
    The RIGHT half of the setup screen: search, random pick, the search results
-   and "Your cast" underneath them.
+   and "Your cast" underneath them (a card for every queen picked).
    Needs js/data/queens.js (loadQueens, QUEENS, QUEENS_URL) loaded first.
 
    How the search works: nothing is shown until you type. Then only the best
@@ -13,7 +13,7 @@
      1. Settings (edit these)
      2. Elements and state
      3. Messages (loading / errors / no results)
-     4. Building the cards
+     4. Building the cards (results cards and cast cards)
      5. Search and results
      6. Cast changes (add / remove / random / clear)
      7. Refreshing the cast and cards
@@ -43,12 +43,14 @@ const Cast = (function () {
   const randomBtn   = document.getElementById('random-queen');
   const resultsText = document.getElementById('results-count');
   const countText   = document.getElementById('cast-count');
-  const chipList    = document.getElementById('cast-chips');
+  const castGrid    = document.getElementById('cast-grid');
+  const castHint    = document.getElementById('cast-hint');
   const clearBtn    = document.getElementById('cast-clear');
   const continueBtn = document.getElementById('cast-continue');
   const statusText  = document.getElementById('cast-status');
 
-  const cards = new Map();        // queen id -> card element (made on first use)
+  const cards = new Map();        // queen id -> result card (made on first use)
+  const castCards = new Map();    // queen id -> card shown in "Your cast"
   const queensById = new Map();   // queen id -> queen data
   let searchIndex = [];           // [{ queen, text, words }] prepared for searching
   let castIds = [];               // ids picked so far, in order
@@ -75,14 +77,8 @@ const Cast = (function () {
     return node;
   }
 
-  function makeCard(queen) {
-    const card = make('button', 'queen-card');
-    card.type = 'button';
-    card.dataset.id = queen.id;
-    card.title = queen.name;
-    card.setAttribute('aria-pressed', 'false');
-
-    // Portrait: photo if there is one, otherwise the CSS silhouette
+  // The photo (or silhouette) part of a card, shared by both kinds of card
+  function makePortrait(queen) {
     const portrait = make('span', 'portrait');
     if (queen.image) {
       const img = document.createElement('img');
@@ -93,18 +89,50 @@ const Cast = (function () {
       img.addEventListener('error', function () { img.remove(); });
       portrait.appendChild(img);
     }
+    return portrait;
+  }
 
-    // Name sits over the bottom of the photo (cut after 2 lines if very long)
-    const name = make('span', 'queen-name', queen.name);
+  // Card in the search results: click to add or remove her
+  function makeCard(queen) {
+    const card = make('button', 'queen-card');
+    card.type = 'button';
+    card.dataset.id = queen.id;
+    card.title = queen.name;
+    card.setAttribute('aria-pressed', 'false');
 
     // Tick shown on picked queens (drawn in CSS)
     const check = make('span', 'queen-check');
     check.setAttribute('aria-hidden', 'true');
 
-    card.appendChild(portrait);
-    card.appendChild(name);
+    card.appendChild(makePortrait(queen));
+    card.appendChild(make('span', 'queen-name', queen.name));
     card.appendChild(check);
     return card;
+  }
+
+  // Card in "Your cast": same look, click to remove her
+  function makeCastCard(queen) {
+    const card = make('button', 'queen-card cast-card');
+    card.type = 'button';
+    card.dataset.id = queen.id;
+    card.title = 'Remove ' + queen.name;
+    card.setAttribute('aria-label', 'Remove ' + queen.name + ' from cast');
+
+    const x = make('span', 'queen-remove', '\u00D7');
+    x.setAttribute('aria-hidden', 'true');
+
+    card.appendChild(makePortrait(queen));
+    card.appendChild(make('span', 'queen-name', queen.name));
+    card.appendChild(x);
+    return card;
+  }
+
+  // An empty spot in the cast, numbered
+  function makeEmptySlot(number) {
+    const slot = make('div', 'cast-slot');
+    slot.setAttribute('aria-hidden', 'true');
+    slot.appendChild(make('span', 'cast-slot-number', String(number)));
+    return slot;
   }
 
   // The card for a queen: made the first time it is needed, then reused
@@ -249,23 +277,27 @@ const Cast = (function () {
     card.disabled = isFull() && !selected;
   }
 
-  function renderChips() {
-    chipList.textContent = '';
+  // Draw "Your cast": a card for each queen picked, empty numbered spots for the rest
+  function renderCast() {
+    const fragment = document.createDocumentFragment();
 
-    if (castIds.length === 0) {
-      chipList.appendChild(make('li', 'cast-hint', 'No queens yet. Search for one or hit Random queen.'));
-      return;
+    for (let i = 0; i < CAST_SIZE; i++) {
+      const id = castIds[i];
+      if (id === undefined) {
+        fragment.appendChild(makeEmptySlot(i + 1));
+        continue;
+      }
+      let card = castCards.get(id);
+      if (!card) {
+        card = makeCastCard(queensById.get(id));
+        castCards.set(id, card);
+      }
+      fragment.appendChild(card);
     }
 
-    castIds.forEach(function (id) {
-      const chip = make('button', 'chip', queensById.get(id).name + '  \u00D7');
-      chip.type = 'button';
-      chip.dataset.id = id;
-      chip.setAttribute('aria-label', 'Remove ' + queensById.get(id).name);
-      const item = document.createElement('li');
-      item.appendChild(chip);
-      chipList.appendChild(item);
-    });
+    castGrid.textContent = '';
+    castGrid.appendChild(fragment);
+    castHint.hidden = castIds.length > 0;
   }
 
   function refresh() {
@@ -273,7 +305,7 @@ const Cast = (function () {
 
     cards.forEach(function (card, id) { syncCard(card, id); });
 
-    renderChips();
+    renderCast();
     countText.textContent = castIds.length + ' / ' + CAST_SIZE;
     randomBtn.disabled = full || QUEENS.length === 0;
     clearBtn.disabled = castIds.length === 0;
@@ -316,10 +348,10 @@ const Cast = (function () {
       if (card && !card.disabled) toggle(card.dataset.id);
     });
 
-    // Click a chip in "Your cast" to remove that queen
-    chipList.addEventListener('click', function (event) {
-      const chip = event.target.closest('.chip');
-      if (chip) remove(chip.dataset.id);
+    // Click a card in "Your cast" to remove that queen
+    castGrid.addEventListener('click', function (event) {
+      const card = event.target.closest('.cast-card');
+      if (card) remove(card.dataset.id);
     });
 
     // Search: wait a moment after typing stops, so big lists stay smooth

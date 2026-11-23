@@ -92,17 +92,20 @@
           <div class="queen-grid" id="queen-grid"></div>
         </div>
 
-        <!-- Your cast -->
-        <div class="cast-bar" role="region" aria-label="Your cast">
-          <div class="cast-bar-head">
-            <span class="cast-bar-title">Your cast</span>
-            <span class="cast-count" id="cast-count"></span>
+        <!-- Your cast: a card for every queen picked (built by js/cast.js) -->
+        <div class="cast-box" role="region" aria-label="Your cast">
+          <div class="cast-box-head">
+            <div class="cast-box-title">
+              <h3 class="panel-title">Your cast</h3>
+              <span class="cast-count" id="cast-count"></span>
+            </div>
+            <div class="cast-box-actions">
+              <button class="btn small" id="cast-clear">Clear</button>
+              <button class="btn small" id="cast-continue" disabled>Continue</button>
+            </div>
           </div>
-          <ul class="cast-chips" id="cast-chips"></ul>
-          <div class="cast-bar-actions">
-            <button class="btn small" id="cast-clear">Clear</button>
-            <button class="btn small" id="cast-continue" disabled>Continue</button>
-          </div>
+          <p class="cast-hint" id="cast-hint">Search for a queen or hit Random queen to fill your cast. Click a card here to remove her.</p>
+          <div class="cast-grid" id="cast-grid"></div>
         </div>
       </div>
 
