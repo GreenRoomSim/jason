@@ -220,7 +220,7 @@
     },
     {
       "name": "Mariah",
-      "image": "mariah.webp",
+      "image": "mariah_paris_balenciaga.webp",
       "seasons": ["US S3", "US AS5"],
       "stats": [5, 9, 7, 5, 5]
     },
@@ -370,7 +370,7 @@
     },
     {
       "name": "Lineysha Sparx",
-      "image": "lineysha_sparkx.webp",
+      "image": "lineysha_sparx.webp",
       "seasons": ["US S5"],
       "stats": [2, 9, 8, 4, 5]
     },
