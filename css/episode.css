@@ -63,27 +63,29 @@
 .scene-card { cursor: default; animation: card-in 0.6s ease var(--d, 0s) both; }
 .scene-card:hover { transform: none; }
 
-/* Placement tag stamped under the card */
+/* Placement tag stamped under the card (colour codes) */
 .scene-tag {
-  padding: 5px 16px;
-  font-family: var(--font-logo);
-  font-weight: 800;
+  padding: 5px 18px;
+  font-family: var(--font-body);
+  font-weight: 500;
   font-size: 1rem;
   letter-spacing: 0.08em;
-  color: var(--pale);
-  background: var(--ink);
+  color: #000;
+  background: #fff;
   border-radius: 999px;
-  box-shadow: 0 3px 0 var(--ink-edge);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.12), 0 3px 0 rgba(0, 0, 0, 0.25);
   animation: stamp 0.5s cubic-bezier(.2, 1.4, .4, 1) calc(var(--d, 0s) + 0.55s) both;
 }
-.scene-tag.win  { color: var(--ink-deep); background: var(--accent); box-shadow: 0 3px 0 var(--accent-edge), 0 0 22px var(--accent-soft); font-size: 1.25rem; }
-.scene-tag.high { color: var(--ink-deep); background: var(--mint); box-shadow: 0 3px 0 var(--accent-edge); }
-.scene-tag.low  { background: #7a8f84; box-shadow: 0 3px 0 #556459; }
-.scene-tag.btm  { background: #b04a4a; box-shadow: 0 3px 0 #7d2f2f; }
-.scene-tag.elim { background: #7d2f2f; box-shadow: 0 3px 0 #4f1c1c; }
+.scene-tag.safe { color: #000; background: #fff; }
+.scene-tag.high { color: #000; background: #add8e6; }
+.scene-tag.win  { color: #fff; background: #4169e1; font-weight: 800; font-size: 1.2rem;
+                  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25), 0 0 22px rgba(65, 105, 225, 0.55); }
+.scene-tag.low  { color: #000; background: #ea9999; }
+.scene-tag.btm  { color: #000; background: #ff6347; }
+.scene-tag.elim { color: #000; background: #ff0000; font-weight: 800; }
 
 /* Special cards */
-.scene-card.is-winner { box-shadow: 0 0 0 4px var(--accent), 0 0 34px var(--accent-soft); }
+.scene-card.is-winner { box-shadow: 0 0 0 4px #4169e1, 0 0 34px rgba(65, 105, 225, 0.5); }
 .scene-card.is-glow   { animation: card-in 0.6s ease var(--d, 0s) both, glow 1.6s ease-in-out calc(var(--d, 0s) + 0.6s) infinite; }
 .scene-card.is-out    { animation: card-in 0.6s ease var(--d, 0s) both, sashay 2.4s ease calc(var(--d, 0s) + 1s) forwards; }
 
@@ -107,6 +109,27 @@
 @keyframes sashay    { to { filter: grayscale(1) brightness(0.8); opacity: 0.55; transform: translateY(12px) rotate(-3deg) scale(0.96); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .episode-stage.is-new > *, .scene-big, .scene-card, .scene-tag, .scene-vs { animation: none; }
+  .episode-stage.is-new > *, .episode-stage.is-new > .scene-late, .scene-big, .scene-card, .scene-tag, .scene-vs { animation: none; }
   .scene-card.is-out { filter: grayscale(1); opacity: 0.55; }
+}
+
+/* Text that appears after its queens have been revealed (--d = delay) */
+.episode-stage.is-new > .scene-late { animation: card-in 0.6s ease var(--d, 0s) both; }
+
+/* Episode number locked under the title: it never fades */
+#episode-label { min-height: 1.5em; }
+
+/* Developer panel (hidden when DEV.enabled is false, see js/dev.js) */
+.dev-panel {
+  position: fixed;
+  left: 10px;
+  bottom: 10px;
+  z-index: 50;
+  padding: 8px 12px;
+  font: 12px/1.45 ui-monospace, Menlo, Consolas, monospace;
+  white-space: pre;
+  color: #9fffc8;
+  background: rgba(0, 0, 0, 0.78);
+  border-radius: 8px;
+  pointer-events: none;
 }

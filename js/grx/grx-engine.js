@@ -50,6 +50,8 @@ const GRX = (function () {
                  placements: [], lipSyncs: 0, wins: 0, eliminatedEp: null };
       }),
       challengeHistory: [],
+      runwayHistory: [],      // theme ids used so far
+      songHistory: [],        // lip sync song ids used so far
       eliminated: [],
       episodes: [],
       done: false
@@ -96,6 +98,22 @@ const GRX = (function () {
   }
 
 
+  // Pick from a library (RUNWAY_THEMES, LIPSYNC_SONGS), not repeating until
+  // every entry has been used. Returns null if the library is empty.
+  function pickFresh(state, list, used) {
+    if (!list || list.length === 0) return null;
+    let pool = list.filter(function (item) { return used.indexOf(item.id) === -1; });
+    if (pool.length === 0) {
+      const last = used[used.length - 1];
+      used.length = 0;
+      pool = list.length > 1 ? list.filter(function (item) { return item.id !== last; }) : list.slice();
+    }
+    const pick = pool[Math.floor(state.rng() * pool.length)];
+    used.push(pick.id);
+    return pick;
+  }
+
+
   /* ---------- One episode ---------- */
   function runEpisode(state) {
     const active = activeQueens(state);
@@ -118,7 +136,8 @@ const GRX = (function () {
       total[q.id]  = chal[q.id] * C.challengeShare + runway[q.id] * (1 - C.challengeShare);
     });
     events.push({ type: 'challenge', id: challenge.id, name: challenge.name, scores: scoreMap(chal) });
-    events.push({ type: 'runway', scores: scoreMap(runway) });
+    const theme = pickFresh(state, typeof RUNWAY_THEMES !== 'undefined' ? RUNWAY_THEMES : [], state.runwayHistory);
+    events.push({ type: 'runway', theme: theme ? { id: theme.id, name: theme.name } : null, scores: scoreMap(runway) });
 
     // Rank best to worst, then hand out placements
     const ranked = active.slice().sort(function (a, b) { return total[b.id] - total[a.id]; });
@@ -143,7 +162,9 @@ const GRX = (function () {
       return { q: q, s: roll(state, q, { lipSync: 1 }, C.lipSyncChaos) };
     }).sort(function (a, b) { return b.s - a.s; });
     const stay = ls[0].q, out = ls[1].q;
-    events.push({ type: 'lipsync', queens: ids(btm2), stay: stay.id });
+    const song = pickFresh(state, typeof LIPSYNC_SONGS !== 'undefined' ? LIPSYNC_SONGS : [], state.songHistory);
+    events.push({ type: 'lipsync', queens: ids(btm2), stay: stay.id,
+                  song: song ? { id: song.id, title: song.title, artist: song.artist } : null });
     events.push({ type: 'elimination', queen: out.id });
 
     // Update records
