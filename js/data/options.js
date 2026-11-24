@@ -20,6 +20,10 @@
        ]
      }
 
+   A choice can be locked while it is in development: add  locked: true  to it.
+   It shows blurred with a lock icon, and clicking it opens a "coming soon"
+   popup instead of selecting it. Delete the line to unlock it.
+
    Choice ids are what the simulation engine will read later, so keep them
    short and stable (changing an id later means changing the engine too).
 
@@ -43,8 +47,8 @@ const SETUP_OPTIONS = [
     default: 'regular',
     choices: [
       { id: 'regular',          label: 'Regular' },
-      { id: 'lipsync-legacy',   label: 'Lip Sync Legacy' },
-      { id: 'lipsync-assassin', label: 'Lip Sync Assassin' }
+      { id: 'lipsync-legacy',   label: 'Lip Sync Legacy',   locked: true },
+      { id: 'lipsync-assassin', label: 'Lip Sync Assassin', locked: true }
     ]
   },
 
