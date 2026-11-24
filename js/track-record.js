@@ -72,6 +72,13 @@ const TrackRecord = (function () {
 
     inComp.sort(function (a, b) {
       if (season.finale) return a.finalRank - b.finalRank;     // after the finale: winner first
+      // Split premiere: queens who were in the LATEST episode go on top,
+      // and queens who weren't (blank tile) go underneath them.
+      const last = season.episodes.length - 1;
+      const aIn = a.placements[last] ? 0 : 1;
+      const bIn = b.placements[last] ? 0 : 1;
+      if (aIn !== bIn) return aIn - bIn;
+
       // Compare most recent placements first. Blank episodes (null: a split
       // premiere episode she wasn't in) are skipped, so both halves of a
       // split cast sort together.
