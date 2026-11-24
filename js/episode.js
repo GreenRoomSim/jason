@@ -354,7 +354,34 @@ const Episode = (function () {
   // Row size for the finalists: 1-2 big, 3 trio, 4+ mid
   function finalistSize(n) { return n <= 2 ? 'big' : (n === 3 ? 'trio' : 'mid'); }
 
-  // The 7 finale screens, from the log made by GRX.runFinale
+  // Lip Sync For The Crown: rules, two lip syncs (each followed by who goes
+  // through), then the final lip sync for the crown. Adds the scenes to `out`
+  // and returns the two queens in the final.
+  function crownScenes(out, fin) {
+    const WORDS = ['one', 'two'];
+    out.push({ id: 'finale-crown-rules', kicker: 'The finale format', title: 'Lip Sync For The Crown',
+               text: 'Two lip syncs first. The two winners then lip sync head to head for the crown.' });
+
+    fin.matches.slice(0, 2).forEach(function (m, i) {
+      const song = m.song ? '\u266A ' + m.song.title + ' \u2013 ' + m.song.artist + ' \u266A' : '';
+      out.push({ id: 'crown-ls-' + (i + 1), kicker: 'Lip sync ' + WORDS[i] + ' of three',
+                 title: i === 0 ? 'The first lip sync' : 'The second lip sync', text: song,
+                 groups: [{ size: 'big', vs: true, items: m.queens.map(function (id) { return item(id, null, null, 'glow'); }) }] });
+      out.push({ id: 'crown-result-' + (i + 1), kicker: 'Through to the final lip sync', together: true,
+                 groups: [{ size: 'mid', items: [item(m.winner, 'THROUGH', 'win', 'winner')],
+                            text: name(m.winner) + ', you are going to the final lip sync for the crown!' },
+                          { size: 'compact', items: [item(m.loser, 'RUNNER UP', 'runner')],
+                            text: name(m.loser) + ', you will not be wearing the crown tonight.' }] });
+    });
+
+    const last = fin.matches[2];
+    out.push({ id: 'finale-lipsync', kicker: 'It\u2019s time for', title: 'The lip sync for the crown',
+               text: last.song ? '\u266A ' + last.song.title + ' \u2013 ' + last.song.artist + ' \u266A' : '',
+               groups: [{ size: 'big', vs: true, items: last.queens.map(function (id) { return item(id, null, null, 'glow'); }) }] });
+    return last.queens;
+  }
+
+  // The finale screens, from the log made by GRX.runFinale
   function buildFinaleScenes(fin) {
     const out = [];
     const count = fin.finalists.length;                          // queens in the final lip sync
@@ -389,16 +416,21 @@ const Episode = (function () {
                text: 'The finalists enter the stage.',
                groups: [{ size: finalistSize(count), items: plain(fin.finalists) }] });
 
-    // 4. The final lip sync
-    out.push({ id: 'finale-lipsync', kicker: 'It\u2019s time for', title: 'The final lip sync',
-               text: fin.song ? '\u266A ' + fin.song.title + ' \u2013 ' + fin.song.artist + ' \u266A' : '',
-               groups: [{ size: finalistSize(count), vs: true,
-                          items: fin.finalists.map(function (id) { return item(id, null, null, 'glow'); }) }] });
+    // 4. The final lip sync (Lip Sync For The Crown plays three, see crownScenes)
+    let pair = fin.finalists;
+    if (fin.matches) {
+      pair = crownScenes(out, fin);
+    } else {
+      out.push({ id: 'finale-lipsync', kicker: 'It\u2019s time for', title: 'The final lip sync',
+                 text: fin.song ? '\u266A ' + fin.song.title + ' \u2013 ' + fin.song.artist + ' \u266A' : '',
+                 groups: [{ size: finalistSize(count), vs: true,
+                            items: fin.finalists.map(function (id) { return item(id, null, null, 'glow'); }) }] });
+    }
 
     // 5. Before the winner is named
     out.push({ id: 'finale-decision', title: 'Ladies, I\u2019ve made my decision.',
                groups: [{ size: 'mid',
-                          items: fin.finalists.map(function (id) { return item(id, null, null, 'glow'); }),
+                          items: pair.map(function (id) { return item(id, null, null, 'glow'); }),
                           text: 'The winner of this season is\u2026' }] });
 
     // 6. The winner (crown, gold ring, confetti), runners-up underneath

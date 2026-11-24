@@ -318,6 +318,69 @@ const GRX = (function () {
   }
 
 
+  /* ---------- Lip Sync For The Crown ---------- */
+  // 4 queens, 3 lip syncs: two random pairs, then the two winners for the
+  // crown. Judged mostly on track record (see GRX_CONFIG.crownFinale).
+  function runCrownFinale(state, entrants, guests) {
+    const K = C.crownFinale;
+    const ids = function (list) { return list.map(function (q) { return q.id; }); };
+    const byId = function (id) { return entrants.find(function (q) { return q.id === id; }); };
+    const songOf = function () {
+      const s = pickFresh(state, typeof LIPSYNC_SONGS !== 'undefined' ? LIPSYNC_SONGS : [], state.songHistory);
+      return s ? { id: s.id, title: s.title, artist: s.artist } : null;
+    };
+
+    // A queen's season record (stats, wins and bottom 2s)
+    const record = function (q) {
+      const keys = Object.keys(q.stats);
+      const avg = keys.reduce(function (s, k) { return s + q.stats[k]; }, 0) / keys.length;
+      return avg + q.wins * K.winBonus - q.lipSyncs * K.btm2Penalty;
+    };
+    const score = function (q) {
+      const sync = roll(state, q, { lipSync: 1 }, C.lipSyncChaos);
+      return sync * K.lipSyncShare + (record(q) + gauss(state.rng) * K.recordChaos) * (1 - K.lipSyncShare);
+    };
+    const duel = function (a, b) {
+      const winner = score(a) >= score(b) ? a : b;
+      const loser = winner === a ? b : a;
+      return { queens: [a.id, b.id], winner: winner.id, loser: loser.id, song: songOf() };
+    };
+
+    // Random pairs
+    const order = entrants.slice();
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(state.rng() * (i + 1));
+      const tmp = order[i]; order[i] = order[j]; order[j] = tmp;
+    }
+    const m1 = duel(order[0], order[1]);
+    const m2 = duel(order[2], order[3]);
+    const final = duel(byId(m1.winner), byId(m2.winner));
+
+    // Placings: winner 1st, loser of the final 2nd, the two first-round losers 3rd
+    const semiLosers = [byId(m1.loser), byId(m2.loser)].sort(function (a, b) { return record(b) - record(a); });
+    byId(final.winner).finalRank = 1;
+    byId(final.loser).finalRank = 2;
+    semiLosers.forEach(function (q) { q.finalRank = 3; });
+    entrants.forEach(function (q) { q.placements.push(q.finalRank === 1 ? 'WINNER' : 'RUNNER UP'); });
+
+    const log = {
+      finale: true,
+      format: 'crown',
+      entrants: ids(entrants),
+      finalists: ids(entrants),
+      cut: null,
+      guests: guests,
+      matches: [m1, m2, final],
+      song: final.song,
+      winner: final.winner,
+      runnersUp: [final.loser].concat(ids(semiLosers))
+    };
+    state.winner = log.winner;
+    state.finale = log;
+    return log;
+  }
+
+
   /* ---------- The finale ---------- */
   // Runs once the regular episodes are done (state.done). Every finalist lip
   // syncs; the best total (see GRX_CONFIG.finale) is crowned, the rest are
@@ -335,6 +398,10 @@ const GRX = (function () {
     const ids = function (list) { return list.map(function (q) { return q.id; }); };
     const entrants = activeQueens(state);
     const guests = state.eliminated.map(function (e) { return e.id; });
+
+    if (state.settings.finale === 'crown' && entrants.length === 4) {
+      return runCrownFinale(state, entrants, guests);
+    }
 
     const entries = entrants.map(function (q) {
       const statAvg = Object.keys(q.stats).reduce(function (s, k) { return s + q.stats[k]; }, 0) /

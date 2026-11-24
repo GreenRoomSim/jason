@@ -101,7 +101,7 @@ const GRX_CONFIG = {
   finaleAt: 3,
 
   /* Finalists per Finale setting (ids from data/options.js). */
-  finaleSizes: { top3: 3, top4: 4, crown: 3 },
+  finaleSizes: { top3: 3, top4: 4, crown: 4 },
 
   /* Queens cut BEFORE the final lip sync, per Finale setting (default 0).
      Top 4 finale: the queen with the weakest season "resume" (see finale
@@ -114,6 +114,20 @@ const GRX_CONFIG = {
      where resume = average stat + wins * winBonus - BTM2s * btm2Penalty + a
      random roll. Raise lipSyncShare to make the final lip sync matter more,
      lower it to reward the queen with the stronger season. */
+  /* LIP SYNC FOR THE CROWN: 4 queens, 3 lip syncs. Two random pairs lip sync,
+     the two winners lip sync for the crown. Each lip sync is scored:
+       score = lip sync roll * lipSyncShare + (season record + a random roll) * (1 - lipSyncShare)
+     record = average stat + wins * winBonus - BTM2s * btm2Penalty.
+     lipSyncShare 0.3 = 30% lip sync ability, 70% track record. Raise
+     winBonus / lower recordChaos to make the better track record win more
+     often; do the opposite for more upsets. */
+  crownFinale: {
+    lipSyncShare: 0.3,
+    winBonus: 2,        // 3 wins vs 1 win: the 3-win queen goes through ~86% (equal lip sync), ~57% (vs an amazing lip syncer)
+    btm2Penalty: 0.5,
+    recordChaos: 2
+  },
+
   finale: {
     lipSyncShare: 0.5,
     winBonus: 0.5,
