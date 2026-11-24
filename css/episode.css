@@ -177,6 +177,8 @@
 
 /* Finale tag colours */
 .scene-tag.guest  { color: #000; background: #cccccc; }
+.scene-tag.lost-r1 { color: #000; background: #ff7c00; font-weight: 800; font-size: 0.85rem; padding: 6px 16px;
+                     white-space: pre-line; text-align: center; line-height: 1.15; border-radius: 18px; }
 .scene-tag.finale-elim { color: #fff; background: #9e512c; font-weight: 800; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3); }
 .scene-tag.runner { color: #000; background: #d9d9d9; font-weight: 800; }
 .scene-tag.guest, .scene-tag.runner { padding: 4px 12px; font-size: 0.85rem; }

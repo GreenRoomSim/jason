@@ -57,7 +57,7 @@ const GRX = (function () {
       episode: 1,
       queens: queens.map(function (q) {
         return { id: q.id, name: q.name, stats: q.stats, status: 'active',
-                 placements: [], lipSyncs: 0, wins: 0, eliminatedEp: null, finalRank: null, finaleCut: false };
+                 placements: [], lipSyncs: 0, wins: 0, eliminatedEp: null, finalRank: null, finaleCut: false, lostRound1: false };
       }),
       challengeHistory: [],
       premiere: premiereFor(queens.length, settings),   // { id, episodes, tops }
@@ -360,7 +360,7 @@ const GRX = (function () {
     const semiLosers = [byId(m1.loser), byId(m2.loser)].sort(function (a, b) { return record(b) - record(a); });
     byId(final.winner).finalRank = 1;
     byId(final.loser).finalRank = 2;
-    semiLosers.forEach(function (q) { q.finalRank = 3; });
+    semiLosers.forEach(function (q) { q.finalRank = 3; q.lostRound1 = true; });
     entrants.forEach(function (q) { q.placements.push(q.finalRank === 1 ? 'WINNER' : 'RUNNER UP'); });
 
     const log = {

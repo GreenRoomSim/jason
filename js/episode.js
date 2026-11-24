@@ -354,6 +354,9 @@ const Episode = (function () {
   // Row size for the finalists: 1-2 big, 3 trio, 4+ mid
   function finalistSize(n) { return n <= 2 ? 'big' : (n === 3 ? 'trio' : 'mid'); }
 
+  // Tag for the two queens who lose their first lip sync in Lip Sync For The Crown
+  const LOST_R1 = 'LOST\n1ST\nROUND';
+
   // Lip Sync For The Crown: rules, two lip syncs (each followed by who goes
   // through), then the final lip sync for the crown. Adds the scenes to `out`
   // and returns the two queens in the final.
@@ -370,7 +373,7 @@ const Episode = (function () {
       out.push({ id: 'crown-result-' + (i + 1), kicker: 'Through to the final lip sync', together: true,
                  groups: [{ size: 'mid', items: [item(m.winner, 'THROUGH', 'win', 'winner')],
                             text: name(m.winner) + ', you are going to the final lip sync for the crown!' },
-                          { size: 'compact', items: [item(m.loser, 'RUNNER UP', 'runner')],
+                          { size: 'compact', items: [item(m.loser, LOST_R1, 'lost-r1')],
                             text: name(m.loser) + ', you will not be wearing the crown tonight.' }] });
     });
 
@@ -441,7 +444,10 @@ const Episode = (function () {
     }];
     if (fin.runnersUp.length) {
       winGroups.push({ size: 'compact',
-                       items: fin.runnersUp.map(function (id) { return item(id, 'RUNNER UP', 'runner'); }) });
+                       items: fin.runnersUp.map(function (id) {
+                         const lostFirst = fin.matches && fin.matches.slice(0, 2).some(function (m) { return m.loser === id; });
+                         return lostFirst ? item(id, LOST_R1, 'lost-r1') : item(id, 'RUNNER UP', 'runner');
+                       }) });
     }
     out.push({ id: 'finale-winner', kicker: 'Your winner', confetti: true, groups: winGroups });
 

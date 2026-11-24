@@ -94,10 +94,25 @@ const TrackRecord = (function () {
     return inComp.concat(out);
   }
 
+  // Rank shown for a finalist, always as numbers. Tied queens share their places:
+  //   winner 1st; two runners-up 2nd/3rd; Lip Sync For The Crown: final loser 2nd,
+  //   the two first-round losers 3rd/4th.
+  function finalistRank(season, queen) {
+    if (queen.finalRank === 1) return ordinal(1);
+    const crown = season.finale && season.finale.format === 'crown';
+    const tier = function (q) { return crown ? q.finalRank : 2; };       // who ties with who
+    const group = season.queens.filter(function (q) {
+      return q.status === 'active' && q.finalRank && q.finalRank !== 1 && tier(q) === tier(queen);
+    });
+    const places = [];
+    for (let i = 0; i < group.length; i++) places.push(ordinal(tier(queen) + i));
+    return places.join('/');
+  }
+
   function rankLabel(season, queen) {
     if (queen.status === 'active') {
       if (!season.finale) return 'TBA';
-      return queen.finalRank === 1 ? 'Winner' : 'Runner-up';
+      return finalistRank(season, queen);
     }
     if (queen.finaleCut) return ordinal(queen.finalRank);      // cut in a Top 4 finale: 4th
     const log = season.episodes[queen.eliminatedEp - 1];
@@ -171,10 +186,14 @@ const TrackRecord = (function () {
         if (queen.finaleCut) {
           row.appendChild(make('td', 'p-finale-elim', 'ELIM'));     // cut before the final lip sync
         } else {
-          const fin = queen.status === 'active'
-            ? (queen.finalRank === 1 ? 'WINNER' : 'RUNNER UP')
-            : 'GUEST';
-          row.appendChild(make('td', PLACEMENT_CLASS[fin], fin));
+          if (queen.lostRound1) {
+            row.appendChild(make('td', 'p-lost-r1', 'LOST\n1ST\nROUND'));   // Lip Sync For The Crown
+          } else {
+            const fin = queen.status === 'active'
+              ? (queen.finalRank === 1 ? 'WINNER' : 'RUNNER UP')
+              : 'GUEST';
+            row.appendChild(make('td', PLACEMENT_CLASS[fin], fin));
+          }
         }
       }
       tbody.appendChild(row);
