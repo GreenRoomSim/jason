@@ -51,6 +51,20 @@ const GRX_CONFIG = {
      her chance of being in the tops is unchanged. 1 = no effect, 0 = never. */
   repeatWinChance: 0.4,
 
+  /* Premiere formats (ids from data/options.js). Nobody goes home in a
+     premiere. The TOP 2 queens of each premiere episode lip sync for the win:
+     the winner gets a WIN, the loser gets TOP2.
+       tops:    queens in the top of the week (includes the top 2; the
+                other tops are HIGH, everyone else is SAFE)
+       episodes: how many premiere episodes there are
+       minCast: smallest cast allowed (a smaller cast falls back to top2)
+     split: half the cast enters in episode 1, the other half in episode 2.
+     Eliminations start the episode after the premiere(s). */
+  premieres: {
+    top2:  { episodes: 1, tops: 5 },
+    split: { episodes: 2, tops: 4, minCast: 13 }   // "over 12 queens"
+  },
+
   /* Runway is judged on this stat mix. */
   runwayWeights: { design: 1 },
 
@@ -82,6 +96,21 @@ const GRX_CONFIG = {
     { minQueens: 4, safe: 0,      top: 2, bottom: 2 }
   ],
 
-  /* Season stops here (finale rules come later). */
-  finaleAt: 3
+  /* Regular episodes stop when this many queens are left; those queens are
+     the finalists. Used if the Finale setting isn't recognised. */
+  finaleAt: 3,
+
+  /* Finalists per Finale setting (ids from data/options.js). */
+  finaleSizes: { top3: 3, top4: 4, crown: 3 },
+
+  /* How the winner is chosen. All finalists lip sync, and each gets
+       total = lip sync roll * lipSyncShare + season "resume" * (1 - lipSyncShare)
+     where resume = average stat + wins * winBonus - BTM2s * btm2Penalty + a
+     random roll. Raise lipSyncShare to make the final lip sync matter more,
+     lower it to reward the queen with the stronger season. */
+  finale: {
+    lipSyncShare: 0.5,
+    winBonus: 0.5,
+    btm2Penalty: 0.25
+  }
 };

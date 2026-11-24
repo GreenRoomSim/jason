@@ -78,6 +78,7 @@
 }
 .scene-tag.safe { color: #000; background: #fff; }
 .scene-tag.high { color: #000; background: #add8e6; }
+.scene-tag.top2 { color: #000; background: #00bfff; font-weight: 800; }
 .scene-tag.win  { color: #fff; background: #4169e1; font-weight: 800; font-size: 1.2rem;
                   box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25), 0 0 22px rgba(65, 105, 225, 0.55); }
 .scene-tag.low  { color: #000; background: #ea9999; }
@@ -165,3 +166,82 @@
 .scene-cat .queen-card { width: var(--card-w); flex: 0 0 auto; animation: none; }
 .scene-cat .queen-name { padding: 14px 3px 3px; }
 .scene-cat-text { font-weight: 800; font-size: clamp(1.05rem, 2vw, 1.4rem); }
+
+/* ==========================================================================
+   Finale: winner, runner up and guest colours, crown, confetti, recap
+   ========================================================================== */
+
+/* Bigger rows for the finalists (sized by width for 3, by height for the winner) */
+.scene-row.is-trio { --card-w: clamp(110px, 19vw, 200px); --name-size: 1.1rem; --name-size-long: 0.95rem; --name-size-xlong: 0.8rem; }
+.scene-row.is-hero { --card-w: clamp(130px, 26vh, 240px); --name-size: 1.2rem; --name-size-long: 1rem; --name-size-xlong: 0.85rem; }
+
+/* Finale tag colours */
+.scene-tag.guest  { color: #000; background: #cccccc; }
+.scene-tag.runner { color: #000; background: #d9d9d9; font-weight: 800; }
+.scene-tag.guest, .scene-tag.runner { padding: 4px 12px; font-size: 0.85rem; }
+.scene-tag.winner { padding: 6px 26px; color: #000; background: #ffd100; font-weight: 800; font-size: 1.3rem;
+                    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25), 0 0 26px rgba(255, 209, 0, 0.7); }
+
+/* The winner's card: gold ring that pulses */
+.scene-card.is-crowned {
+  box-shadow: 0 0 0 4px #ffd100, 0 0 40px rgba(255, 209, 0, 0.6);
+  animation: card-in 0.6s ease var(--d, 0s) both, gold-glow 1.8s ease-in-out calc(var(--d, 0s) + 0.6s) infinite;
+}
+@keyframes gold-glow {
+  0%, 100% { box-shadow: 0 0 0 4px #ffd100, 0 0 24px 2px rgba(255, 209, 0, 0.45); }
+  50%      { box-shadow: 0 0 0 4px #ffd100, 0 0 54px 14px rgba(255, 209, 0, 0.75); }
+}
+
+/* Crown drops onto the winner */
+.scene-crown {
+  width: 46%;
+  aspect-ratio: 1.2;
+  margin-bottom: -4px;
+  background: linear-gradient(180deg, #ffe766, #ffd100 55%, #e0a800);
+  clip-path: polygon(0 100%, 0 28%, 25% 58%, 50% 0, 75% 58%, 100% 28%, 100% 100%);
+  animation: crown-drop 0.8s cubic-bezier(.2, 1.4, .4, 1) 1.2s both;
+}
+@keyframes crown-drop {
+  from { opacity: 0; transform: translateY(-90px) rotate(-18deg) scale(1.4); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Confetti (made in js/episode.js). Only transform and opacity animate. */
+.confetti { position: fixed; inset: 0; z-index: 20; overflow: hidden; pointer-events: none; }
+.episode-stage.is-new > .confetti { animation: none; }
+.confetti i {
+  position: absolute;
+  top: -6vh;
+  left: var(--x);
+  width: 9px;
+  height: 15px;
+  border-radius: 2px;
+  background: var(--c);
+  animation: confetti-fall var(--t) linear var(--dl) 3 both;
+}
+@keyframes confetti-fall {
+  from { opacity: 1; transform: translate3d(0, 0, 0) rotate(0); }
+  to   { opacity: 1; transform: translate3d(var(--dx), 112vh, 0) rotate(var(--r)); }
+}
+
+/* Season recap boxes */
+.scene-recap {
+  width: 100%;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+.scene-recap > div {
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 2px solid rgba(40, 106, 82, 0.18);
+  border-radius: 14px;
+}
+.scene-recap dt { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.7; }
+.scene-recap dd { margin: 4px 0 0; font-family: var(--font-logo); font-weight: 800; font-size: 1.15rem; line-height: 1.2; }
+
+@media (prefers-reduced-motion: reduce) {
+  .confetti { display: none; }
+  .scene-crown, .scene-card.is-crowned { animation: none; }
+}

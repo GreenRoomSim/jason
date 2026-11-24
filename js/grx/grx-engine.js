@@ -33,6 +33,23 @@ const GRX = (function () {
     return row ? row.cap : 3;
   }
 
+  // How many queens are left when the regular episodes stop (the finalists)
+  function finaleSizeFor(settings) {
+    const size = settings && C.finaleSizes ? C.finaleSizes[settings.finale] : null;
+    return size || C.finaleAt;
+  }
+
+  // Which premiere format this season uses: { id, episodes, tops }.
+  // 'regular' = no special premiere (episodes: 0). A split premiere needs a
+  // big enough cast, otherwise it falls back to a normal top 2 premiere.
+  function premiereFor(castSize, settings) {
+    const table = C.premieres || {};
+    let id = settings ? settings.premiere : null;
+    if (!table[id]) return { id: 'regular', episodes: 0, tops: 0 };
+    if (table[id].minCast && castSize < table[id].minCast) id = 'top2';
+    return { id: id, episodes: table[id].episodes, tops: table[id].tops };
+  }
+
   function newSeason(queens, settings) {
     return {
       rng: Math.random,
@@ -40,15 +57,20 @@ const GRX = (function () {
       episode: 1,
       queens: queens.map(function (q) {
         return { id: q.id, name: q.name, stats: q.stats, status: 'active',
-                 placements: [], lipSyncs: 0, wins: 0, eliminatedEp: null };
+                 placements: [], lipSyncs: 0, wins: 0, eliminatedEp: null, finalRank: null };
       }),
       challengeHistory: [],
+      premiere: premiereFor(queens.length, settings),   // { id, episodes, tops }
+      splitGroups: null,                    // split premiere: [[ids ep 1], [ids ep 2]]
       btm2Cap: btm2CapFor(queens.length),   // BTM2 appearances that get a queen sent home
       lastWinner: null,                     // id of last episode's winner
       runwayHistory: [],      // theme ids used so far
       songHistory: [],        // lip sync song ids used so far
       eliminated: [],
       episodes: [],
+      finaleAt: finaleSizeFor(settings),    // queens left when the finale begins
+      finale: null,                         // the finale log, once it has been run
+      winner: null,                         // id of the winner, once the finale has been run
       done: false
     };
   }
@@ -109,17 +131,93 @@ const GRX = (function () {
   }
 
 
+  /* ---------- Premieres ---------- */
+  // Split the cast in two for a split premiere (random; the first half is
+  // the bigger one if the cast is odd). Returns [[ids], [ids]].
+  function makeSplitGroups(state, everyone) {
+    const shuffled = everyone.slice();
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(state.rng() * (i + 1));
+      const tmp = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = tmp;
+    }
+    const half = Math.ceil(shuffled.length / 2);
+    const idsOf = function (list) { return list.map(function (q) { return q.id; }); };
+    return [idsOf(shuffled.slice(0, half)), idsOf(shuffled.slice(half))];
+  }
+
+  // The rest of a premiere episode, after challenge + runway have been scored.
+  // No bottoms and no elimination: the top of the week is SAFE/HIGH, and the
+  // best two lip sync for the win (winner: WIN, loser: TOP2).
+  function finishPremiere(state, everyone, active, ranked, events) {
+    const ids = function (list) { return list.map(function (q) { return q.id; }); };
+    const topCount = Math.max(2, Math.min(state.premiere.tops, active.length));
+    const tops = ranked.slice(0, topCount);
+    const safe = ranked.slice(topCount);
+    const pair = tops.slice(0, 2);
+
+    const ls = pair.map(function (q) {
+      return { q: q, s: roll(state, q, { lipSync: 1 }, C.lipSyncChaos) };
+    }).sort(function (a, b) { return b.s - a.s; });
+    const winner = ls[0].q, loser = ls[1].q;
+
+    const placement = {};
+    safe.forEach(function (q) { placement[q.id] = 'SAFE'; });
+    tops.forEach(function (q) { placement[q.id] = 'HIGH'; });
+    placement[winner.id] = 'WIN';
+    placement[loser.id] = 'TOP2';
+
+    const song = pickFresh(state, typeof LIPSYNC_SONGS !== 'undefined' ? LIPSYNC_SONGS : [], state.songHistory);
+    const others = tops.filter(function (q) { return q !== winner && q !== loser; });
+
+    events.push({ type: 'safe', queens: ids(safe) });
+    events.push({ type: 'critiques', tops: ids(tops), bottoms: [] });
+    events.push({ type: 'results', win: null, high: ids(others), low: null, btm2: [],
+                  top2: ids(pair), premiere: true });
+    // kind 'top2' = lip sync for the win (no one goes home). stay/winner = the winner.
+    events.push({ type: 'lipsync', kind: 'top2', queens: ids(pair), winner: winner.id,
+                  loser: loser.id, stay: winner.id, forcedByCap: false,
+                  song: song ? { id: song.id, title: song.title, artist: song.artist } : null });
+
+    // Records. Queens who weren't in this episode (the other half of a split
+    // premiere) get null = a blank tile on the track record.
+    everyone.forEach(function (q) { q.placements.push(placement[q.id] || null); });
+    winner.wins++;
+    state.lastWinner = winner.id;
+
+    const log = { episode: state.episode, queensLeft: everyone.length, premiere: true,
+                  appearing: ids(active), events: events };
+    state.episodes.push(log);
+    state.episode++;
+    if (activeQueens(state).length <= state.finaleAt) state.done = true;
+    return log;
+  }
+
+
   /* ---------- One episode ---------- */
   function runEpisode(state) {
-    const active = activeQueens(state);
+    const everyone = activeQueens(state);
+    const isPremiere = state.episode <= state.premiere.episodes;
+
+    // Who is in this episode. Only a split premiere has part of the cast.
+    let active = everyone;
+    if (isPremiere && state.premiere.id === 'split') {
+      if (!state.splitGroups) state.splitGroups = makeSplitGroups(state, everyone);
+      const group = state.splitGroups[state.episode - 1];
+      active = everyone.filter(function (q) { return group.indexOf(q.id) !== -1; });
+    }
+
     const n = active.length;
-    const shape = getEpisodeShape(n);
-    if (state.done || !shape) { state.done = true; return null; }
+    const shape = isPremiere ? null : getEpisodeShape(n);
+    if (state.done || (!isPremiere && !shape)) { state.done = true; return null; }
 
     const events = [];
     const ids = function (list) { return list.map(function (q) { return q.id; }); };
 
-    if (state.episode === 1) events.push({ type: 'entrance', queens: ids(active) });
+    // Queens' entrance: episode 1 (everyone, or the first half in a split),
+    // and episode 2 of a split premiere (the second half)
+    if (state.episode === 1 || (isPremiere && state.premiere.id === 'split')) {
+      events.push({ type: 'entrance', queens: ids(active) });
+    }
 
     // Challenge + runway
     const challenge = pickChallenge(state);
@@ -143,6 +241,7 @@ const GRX = (function () {
 
     // Rank best to worst, then hand out placements
     const ranked = active.slice().sort(function (a, b) { return total[b.id] - total[a.id]; });
+    if (isPremiere) return finishPremiere(state, everyone, active, ranked, events);
     const placement = {};
     const tops = ranked.slice(0, shape.top);
     // Repeat winners: last week's winner is less likely to win again. She is
@@ -200,10 +299,10 @@ const GRX = (function () {
     out.eliminatedEp = state.episode;
     state.eliminated.push({ id: out.id, episode: state.episode });
 
-    const log = { episode: state.episode, queensLeft: n, events: events };
+    const log = { episode: state.episode, queensLeft: n, appearing: ids(active), events: events };
     state.episodes.push(log);
     state.episode++;
-    if (activeQueens(state).length <= C.finaleAt) state.done = true;   // finale: later
+    if (activeQueens(state).length <= state.finaleAt) state.done = true;   // finale: see runFinale
     return log;
   }
 
@@ -216,6 +315,49 @@ const GRX = (function () {
   function runSeason(state) {
     while (!state.done) runEpisode(state);
     return state;
+  }
+
+
+  /* ---------- The finale ---------- */
+  // Runs once the regular episodes are done (state.done). Every finalist lip
+  // syncs; the best total (see GRX_CONFIG.finale) is crowned, the rest are
+  // runners-up. Returns a log (and stores it in state.finale):
+  //   { finale: true, finalists: [ids], guests: [ids, in elimination order],
+  //     song, winner: id, runnersUp: [ids, best first] }
+  function runFinale(state) {
+    if (state.finale) return state.finale;
+    if (!state.done) return null;
+
+    const F = C.finale;
+    const ids = function (list) { return list.map(function (q) { return q.id; }); };
+    const finalists = activeQueens(state);
+
+    const scored = finalists.map(function (q) {
+      const statAvg = Object.keys(q.stats).reduce(function (s, k) { return s + q.stats[k]; }, 0) /
+                      Object.keys(q.stats).length;
+      const resume = statAvg + q.wins * F.winBonus - q.lipSyncs * F.btm2Penalty + gauss(state.rng) * C.chaos;
+      const sync = roll(state, q, { lipSync: 1 }, C.lipSyncChaos);
+      return { q: q, total: sync * F.lipSyncShare + resume * (1 - F.lipSyncShare) };
+    }).sort(function (a, b) { return b.total - a.total; });
+
+    const song = pickFresh(state, typeof LIPSYNC_SONGS !== 'undefined' ? LIPSYNC_SONGS : [], state.songHistory);
+
+    scored.forEach(function (item, i) {
+      item.q.finalRank = i + 1;
+      item.q.placements.push(i === 0 ? 'WINNER' : 'RUNNER UP');
+    });
+
+    const log = {
+      finale: true,
+      finalists: ids(finalists),
+      guests: state.eliminated.map(function (e) { return e.id; }),
+      song: song ? { id: song.id, title: song.title, artist: song.artist } : null,
+      winner: scored[0].q.id,
+      runnersUp: ids(scored.slice(1).map(function (s) { return s.q; }))
+    };
+    state.winner = log.winner;
+    state.finale = log;
+    return log;
   }
 
 
@@ -250,7 +392,7 @@ const GRX = (function () {
     return table.sort(function (a, b) { return b.final3Pct - a.final3Pct; });
   }
 
-  return { newSeason: newSeason, runEpisode: runEpisode, runSeason: runSeason,
+  return { newSeason: newSeason, runEpisode: runEpisode, runSeason: runSeason, runFinale: runFinale,
            simulate: simulate, getEpisodeShape: getEpisodeShape };
 
 })();

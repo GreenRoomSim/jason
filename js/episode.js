@@ -44,7 +44,6 @@ const Episode = (function () {
   let season = null;
   let scenes = [];          // scenes of the episode being shown
   let sceneIndex = 0;       // how many scenes of this episode have been shown
-  let finaleShown = false;
   let currentLog = null;    // the episode log being played (for the dev panel)
   let devPanel = null;
 
@@ -56,9 +55,84 @@ const Episode = (function () {
 
 
   /* ---------- 2. Building scenes ---------- */
+  // Premiere episodes (top 2 / split): nobody is eliminated. The top 2 queens
+  // lip sync for the win instead. GRX marks these logs with log.premiere.
+  function buildPremiereScenes(log, ev) {
+    const out = [];
+    const appearing = log.appearing;
+    const isSplit = season.premiere.id === 'split';
+    const r = ev.results;
+    const winner = ev.lipsync.winner;
+    const loser = ev.lipsync.loser;
+
+    if (ev.entrance) {
+      const second = isSplit && log.episode === 2;
+      out.push({ id: 'entrance', title: 'Welcome to the Werk Room',
+                 text: !isSplit ? 'The queens enter one by one.'
+                                : (second ? 'The second group of queens enters.'
+                                          : 'The first group of queens enters.'),
+                 groups: [{ items: plain(ev.entrance.queens) }] });
+    }
+
+    out.push({ id: 'challenge', title: 'This week\u2019s maxi challenge', big: ev.challenge.name });
+    const cats = [];
+    C_BANDS().forEach(function (id) {
+      if (ev.challenge.bands[id].length) cats.push({ ids: ev.challenge.bands[id], text: BAND_TEXT[id] });
+    });
+    out.push({ id: 'challenge-perform', kicker: 'The main challenge', title: ev.challenge.name, cats: cats });
+
+    out.push({ id: 'runway', kicker: 'The runway',
+               title: ev.runway.theme ? ev.runway.theme.name : 'The runway',
+               text: 'The queens walk the runway.',
+               groups: [{ items: plain(appearing) }] });
+
+    if (ev.safe.queens.length) {
+      out.push({ id: 'safe', title: 'Safe',
+                 text: 'These queens are safe and head to Untucked.',
+                 groups: [{ items: ev.safe.queens.map(function (id) { return item(id, 'SAFE', 'safe'); }) }] });
+    }
+
+    // The tops (no bottoms in a premiere)
+    out.push({ id: 'critiques', title: 'The critiques',
+               text: 'The judges give their critiques.',
+               groups: [{ label: 'Tops', items: plain(ev.critiques.tops) }] });
+
+    // The other tops are safe; the top 2 are named
+    const topGroups = [];
+    if (r.high.length) {
+      topGroups.push({ size: 'compact',
+                       items: r.high.map(function (id) { return item(id, 'HIGH', 'high'); }),
+                       text: 'Excellent work this week, you are safe.' });
+    }
+    topGroups.push({ size: 'mid',
+                     items: r.top2.map(function (id) { return item(id, 'TOP 2', 'top2'); }),
+                     text: names(r.top2) + ', you are the top two of the week.' });
+    out.push({ id: 'top2', kicker: 'The top queens', together: true, groups: topGroups });
+
+    const song = ev.lipsync.song;
+    out.push({ id: 'lipsync', title: 'Lip sync for the win',
+               text: song ? '\u266A ' + song.title + ' \u2013 ' + song.artist + ' \u266A' : '',
+               groups: [{ big: true, vs: true, items: ev.lipsync.queens.map(function (id) { return item(id, null, null, 'glow'); }) }] });
+
+    out.push({ id: 'winner', kicker: 'The winner of the lip sync', together: true,
+               groups: [{ size: 'mid', items: [item(winner, 'WIN', 'win', 'winner')],
+                          text: name(winner) + ', condragulations, you are the winner of this week\u2019s challenge!!' },
+                        { size: 'compact', items: [item(loser, 'TOP 2', 'top2')],
+                          text: name(loser) + ', you were fierce tonight. You are safe.' }] });
+
+    out.push({ id: 'no-elimination', title: 'No one goes home tonight',
+               text: isSplit && log.episode === 1
+                     ? 'The other half of the cast arrives next week.'
+                     : 'Everyone stays for another week.' });
+
+    out.push({ id: 'track', title: 'Track record', track: true });
+    return out;
+  }
+
   function buildScenes(log) {
     const ev = {};
     log.events.forEach(function (e) { ev[e.type] = e; });
+    if (log.premiere) return buildPremiereScenes(log, ev);
     const out = [];
 
     // Everyone still in the competition this week
@@ -156,7 +230,8 @@ const Episode = (function () {
   function makeQueenCard(id, fx) {
     const queen = queenData(id);
     const card = make('div', 'queen-card scene-card' + (fx === 'winner' ? ' is-winner' : '') +
-                             (fx === 'glow' ? ' is-glow' : '') + (fx === 'out' ? ' is-out' : ''));
+                             (fx === 'glow' ? ' is-glow' : '') + (fx === 'out' ? ' is-out' : '') +
+                             (fx === 'crown' ? ' is-crowned' : ''));
 
     const portrait = make('span', 'portrait');
     if (queen.image) {
@@ -205,10 +280,11 @@ const Episode = (function () {
 
       let lastDelay = t;
       group.items.forEach(function (it, i) {
-        if (group.vs && i === 1) row.appendChild(make('span', 'scene-vs', 'VS'));
+        if (group.vs && i > 0) row.appendChild(make('span', 'scene-vs', 'VS'));
         const wrap = make('div', 'scene-item');
         wrap.style.setProperty('--d', t.toFixed(2) + 's');           // card AND tag read this
         if (scene.together) wrap.style.setProperty('--tag-gap', '0s');
+        if (it.fx === 'crown') wrap.appendChild(make('span', 'scene-crown'));
         wrap.appendChild(makeQueenCard(it.id, it.fx));
         if (it.tag) wrap.appendChild(make('span', 'scene-tag ' + (it.tone || ''), it.tag));
         row.appendChild(wrap);
@@ -227,8 +303,23 @@ const Episode = (function () {
       }
     });
 
+    // Season recap boxes: scene.recap = [ [label, value], ... ]
+    if (scene.recap) {
+      const list = make('dl', 'scene-recap');
+      scene.recap.forEach(function (row) {
+        const box = make('div');
+        box.appendChild(make('dt', null, row[0]));
+        box.appendChild(make('dd', null, row[1]));
+        list.appendChild(box);
+      });
+      stageBox.appendChild(list);
+    }
+
     // Track record table (built from the season so far)
     if (scene.track) stageBox.appendChild(TrackRecord.build(season, queenData));
+
+    // Confetti for the winner reveal
+    if (scene.confetti) stageBox.appendChild(makeConfetti());
 
     // Restart the entrance animation of the title and text
     stageBox.classList.toggle('is-tight', !!scene.together);
@@ -239,14 +330,96 @@ const Episode = (function () {
     updateDev(scene);
   }
 
-  function showFinaleScene() {
-    const left = season.queens.filter(function (q) { return q.status === 'active'; }).map(function (q) { return q.id; });
-    episodeTag.textContent = 'The finale';
-    drawScene({ id: 'finale', kicker: 'The finale', title: 'Final ' + left.length,
-                text: 'The finale is coming soon.',
-                groups: [{ big: true, items: plain(left) }],
-                track: true });
-    finaleShown = true;
+  /* ---------- Finale scenes ---------- */
+  const CONFETTI_COLORS = ['#ffd100', '#fff3a6', '#4cbd88', '#8ce6b9', '#ffffff', '#286a52'];
+
+  function makeConfetti() {
+    const box = make('div', 'confetti');
+    box.setAttribute('aria-hidden', 'true');
+    for (let i = 0; i < 44; i++) {
+      const bit = make('i');
+      bit.style.setProperty('--x',  (Math.random() * 100).toFixed(1) + '%');
+      bit.style.setProperty('--dx', Math.round(Math.random() * 160 - 80) + 'px');
+      bit.style.setProperty('--r',  Math.round(360 + Math.random() * 720) + 'deg');
+      bit.style.setProperty('--t',  (3 + Math.random() * 2.5).toFixed(2) + 's');
+      bit.style.setProperty('--dl', (0.4 + Math.random() * 2.2).toFixed(2) + 's');
+      bit.style.setProperty('--c',  CONFETTI_COLORS[i % CONFETTI_COLORS.length]);
+      box.appendChild(bit);
+    }
+    return box;
+  }
+
+  function numberWord(n) { return ['zero', 'one', 'two', 'three', 'four', 'five', 'six'][n] || String(n); }
+
+  // Row size for the finalists: 1-2 big, 3 trio, 4+ mid
+  function finalistSize(n) { return n <= 2 ? 'big' : (n === 3 ? 'trio' : 'mid'); }
+
+  // The 7 finale screens, from the log made by GRX.runFinale
+  function buildFinaleScenes(fin) {
+    const out = [];
+    const count = fin.finalists.length;
+    const winner = fin.winner;
+    const queens = season.queens;
+
+    // 1. Announcement
+    out.push({ id: 'finale-announce', kicker: 'It all comes down to this', big: 'The Finale',
+               text: 'After ' + season.episodes.length + ' episodes, only ' + numberWord(count) +
+                     ' queens are left. One of them will be crowned the winner of this season.' });
+
+    // 2. The eliminated queens return as guests
+    out.push({ id: 'finale-guests', title: 'Welcome back to the stage',
+               text: 'The queens of this season!',
+               groups: [{ size: fin.guests.length > 8 ? 'compact' : 'mid',
+                          items: fin.guests.map(function (id) { return item(id, 'GUEST', 'guest'); }) }] });
+
+    // 3. The finalists
+    out.push({ id: 'finale-finalists', kicker: 'The finalists',
+               title: 'Now it\u2019s time for the top ' + count,
+               text: 'The finalists enter the stage.',
+               groups: [{ size: finalistSize(count), items: plain(fin.finalists) }] });
+
+    // 4. The final lip sync
+    out.push({ id: 'finale-lipsync', kicker: 'It\u2019s time for', title: 'The final lip sync',
+               text: fin.song ? '\u266A ' + fin.song.title + ' \u2013 ' + fin.song.artist + ' \u266A' : '',
+               groups: [{ size: finalistSize(count), vs: true,
+                          items: fin.finalists.map(function (id) { return item(id, null, null, 'glow'); }) }] });
+
+    // 5. Before the winner is named
+    out.push({ id: 'finale-decision', title: 'Ladies, I\u2019ve made my decision.',
+               groups: [{ size: 'mid',
+                          items: fin.finalists.map(function (id) { return item(id, null, null, 'glow'); }),
+                          text: 'The winner of this season is\u2026' }] });
+
+    // 6. The winner (crown, gold ring, confetti), runners-up underneath
+    const winGroups = [{
+      size: 'hero',
+      items: [item(winner, 'WINNER', 'winner', 'crown')],
+      text: 'Condragulations ' + name(winner) + ', you are the winner of this season!'
+    }];
+    if (fin.runnersUp.length) {
+      winGroups.push({ size: 'compact',
+                       items: fin.runnersUp.map(function (id) { return item(id, 'RUNNER UP', 'runner'); }) });
+    }
+    out.push({ id: 'finale-winner', kicker: 'Your winner', confetti: true, groups: winGroups });
+
+    // 7. Recap + track record
+    const mostOf = function (key) {
+      const max = Math.max.apply(null, queens.map(function (q) { return q[key]; }));
+      if (max === 0) return 'Nobody';
+      return queens.filter(function (q) { return q[key] === max; })
+                   .map(function (q) { return q.name; }).join(', ') + ' (' + max + ')';
+    };
+    out.push({ id: 'recap', kicker: 'Season recap', title: name(winner) + ' wins!',
+               recap: [
+                 ['Winner', name(winner)],
+                 ['Runner' + (fin.runnersUp.length === 1 ? '-up' : 's-up'), names(fin.runnersUp)],
+                 ['Most challenge wins', mostOf('wins')],
+                 ['Most bottom 2s', mostOf('lipSyncs')],
+                 ['First out', name(season.eliminated[0].id)],
+                 ['Episodes', String(season.episodes.length + 1)]
+               ],
+               track: true });
+    return out;
   }
 
 
@@ -268,14 +441,21 @@ const Episode = (function () {
     if (season) {
       lines.push('Queens left: ' + season.queens.filter(function (q) { return q.status === 'active'; }).length);
     }
-    if (inEpisode) {
+    if (inEpisode && currentLog.finale) {
+      lines.push('Finalists: ' + currentLog.finalists.length);
+      lines.push('Winner: ' + name(currentLog.winner));
+    } else if (inEpisode) {
       const ev = {};
       currentLog.events.forEach(function (e) { ev[e.type] = e; });
       lines.push('Episode ' + currentLog.episode + ' (' + currentLog.queensLeft + ' at start)');
       lines.push('Challenge: ' + ev.challenge.name);
       lines.push('Runway: ' + (ev.runway.theme ? ev.runway.theme.name : '-'));
       lines.push('Song: ' + (ev.lipsync.song ? ev.lipsync.song.title : '-'));
-      lines.push('BTM2 cap: ' + season.btm2Cap + (ev.lipsync.forcedByCap ? '  (elimination forced by cap)' : ''));
+      if (currentLog.premiere) {
+        lines.push('Premiere: ' + season.premiere.id + '  (' + currentLog.appearing.length + ' queens in this episode)');
+      } else {
+        lines.push('BTM2 cap: ' + season.btm2Cap + (ev.lipsync.forcedByCap ? '  (elimination forced by cap)' : ''));
+      }
     }
     devPanel.textContent = lines.join('\n');
   }
@@ -283,15 +463,15 @@ const Episode = (function () {
 
   /* ---------- 5. Buttons and start-up ---------- */
   function updateButton() {
-    nextBtn.disabled = finaleShown;
-    nextBtn.textContent = (sceneIndex >= scenes.length && season.done) ? 'To the finale' : 'Continue';
+    const allShown = sceneIndex >= scenes.length;
+    if (season.finale && allShown) nextBtn.textContent = 'New season';
+    else nextBtn.textContent = (allShown && season.done) ? 'To the finale' : 'Continue';
   }
 
   function start() {
     season = GRX.newSeason(Cast.getQueens(), Setup.get());
     scenes = [];
     sceneIndex = 0;
-    finaleShown = false;
     currentLog = null;
     episodeTag.textContent = '';
     drawScene({ id: 'start', kicker: 'GreenRoom', title: 'Your season begins',
@@ -302,11 +482,18 @@ const Episode = (function () {
   // Show the next scene; when the episode is over, simulate the next one
   function next() {
     if (sceneIndex >= scenes.length) {
-      if (season.done) { showFinaleScene(); updateButton(); return; }
-      currentLog = GRX.runEpisode(season);
-      scenes = buildScenes(currentLog);
-      sceneIndex = 0;
-      episodeTag.textContent = 'Episode ' + currentLog.episode;   // stays put, never fades
+      if (season.finale) { Nav.go('setup'); return; }            // season over: back to setup
+      if (season.done) {
+        currentLog = GRX.runFinale(season);
+        scenes = buildFinaleScenes(currentLog);
+        sceneIndex = 0;
+        episodeTag.textContent = 'The finale';
+      } else {
+        currentLog = GRX.runEpisode(season);
+        scenes = buildScenes(currentLog);
+        sceneIndex = 0;
+        episodeTag.textContent = 'Episode ' + currentLog.episode;   // stays put, never fades
+      }
     }
     drawScene(scenes[sceneIndex++]);
     updateButton();
