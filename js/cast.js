@@ -39,7 +39,7 @@ const Cast = (function () {
   // EASTER EGG: type this in the search box to unlock the secret queens
   // (data/bbdrqueens.json). Not case sensitive. Change it to whatever you like.
   // They stay unlocked until the page is closed or refreshed.
-  const SECRET_CODE = 'secret';
+  const SECRET_CODE = 'LUCKYS-SECRET-SAUCE';
 
 
   /* ---------- 2. Elements and state ---------- */
