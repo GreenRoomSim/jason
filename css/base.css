@@ -6,7 +6,8 @@
      2. Base / page
      3. Screens (show/hide + switching animation)
      4. Buttons (shared 3D look)
-     5. Accessibility (reduced motion)
+     5. Version label
+     6. Accessibility (reduced motion)
    ========================================================================== */
 
 
@@ -182,7 +183,25 @@ body::after {
 }
 
 
-/* ---------- 5. Accessibility ---------- */
+/* ---------- 5. Version label ----------
+   Fixed to the very top left, on every screen. Text is in index.html. */
+.version {
+  position: fixed;
+  top: 6px;
+  left: 10px;
+  z-index: 40;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  opacity: 0.65;
+  pointer-events: none;          /* never blocks a click underneath */
+  user-select: none;
+}
+
+
+/* ---------- 6. Accessibility ---------- */
 @media (prefers-reduced-motion: reduce) {
   .screen.is-active { animation: none; }
   .btn { transition: none; }
