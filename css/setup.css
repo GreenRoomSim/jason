@@ -469,6 +469,18 @@
   border-radius: 14px;
 }
 
+.cast-error {
+  margin: 0;
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #7a1010;
+  background: rgba(255, 99, 71, 0.18);
+  border: 2px solid rgba(255, 99, 71, 0.55);
+  border-radius: 12px;
+}
+
 .cast-hint {
   margin: 0;
   font-size: 0.95rem;

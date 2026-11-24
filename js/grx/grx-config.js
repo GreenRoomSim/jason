@@ -57,12 +57,12 @@ const GRX_CONFIG = {
        tops:    queens in the top of the week (includes the top 2; the
                 other tops are HIGH, everyone else is SAFE)
        episodes: how many premiere episodes there are
-       minCast: smallest cast allowed (a smaller cast falls back to top2)
+       minCast: smallest cast allowed (the setup screen blocks Continue below it)
      split: half the cast enters in episode 1, the other half in episode 2.
      Eliminations start the episode after the premiere(s). */
   premieres: {
     top2:  { episodes: 1, tops: 5 },
-    split: { episodes: 2, tops: 4, minCast: 13 }   // "over 12 queens"
+    split: { episodes: 2, tops: 4, minCast: 12 }   // needs at least 12 queens (checked on the setup screen)
   },
 
   /* Runway is judged on this stat mix. */

@@ -501,7 +501,36 @@ const Episode = (function () {
 
   function init() {
     // The Continue button on the setup screen starts the season
-    document.getElementById('cast-continue').addEventListener('click', function () {
+    const continueBtn = document.getElementById('cast-continue');
+
+    // Red message under the cast hint, made here so index.html needn't change
+    const errorBox = document.createElement('p');
+    errorBox.className = 'cast-error';
+    errorBox.id = 'cast-error';
+    errorBox.setAttribute('role', 'alert');
+    errorBox.hidden = true;
+    document.getElementById('cast-hint').after(errorBox);
+
+    function showError(text) { errorBox.textContent = text; errorBox.hidden = false; }
+    function hideError() { errorBox.hidden = true; }
+
+    // Clear the message as soon as the cast or a setting changes
+    document.addEventListener('click', function (event) {
+      if (!event.target.closest('#cast-continue')) hideError();
+    });
+    document.getElementById('settings').addEventListener('change', hideError);
+
+    continueBtn.addEventListener('click', function () {
+      // Some settings need a minimum cast size
+      const settings = Setup.get();
+      const rule = GRX_CONFIG.premieres && GRX_CONFIG.premieres[settings.premiere];
+      const cast = Cast.getQueens().length;
+      if (rule && rule.minCast && cast < rule.minCast) {
+        showError('You must have at least ' + rule.minCast + ' queens in your cast to use the Split Premiere. ' +
+                  'You have ' + cast + '. Add more queens or pick a different premiere.');
+        return;
+      }
+      hideError();
       start();
       Nav.go('episode');
     });
