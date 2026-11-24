@@ -17,7 +17,7 @@
        groups: [ { label, big, vs, text, items: [ { id, tag, tone, fx } ] } ] }
      group.text appears after that group's queens have been revealed.
      tone: 'safe' | 'high' | 'win' | 'low' | 'btm' | 'elim'  (tag colour)
-     fx:   'winner' | 'glow' | 'out'                         (card effect)
+     fx:   'winner' | 'glow' | 'out' | 'crown' | 'cut'                         (card effect)
    ========================================================================== */
 
 'use strict';
@@ -231,7 +231,7 @@ const Episode = (function () {
     const queen = queenData(id);
     const card = make('div', 'queen-card scene-card' + (fx === 'winner' ? ' is-winner' : '') +
                              (fx === 'glow' ? ' is-glow' : '') + (fx === 'out' ? ' is-out' : '') +
-                             (fx === 'crown' ? ' is-crowned' : ''));
+                             (fx === 'crown' ? ' is-crowned' : '') + (fx === 'cut' ? ' is-cut' : ''));
 
     const portrait = make('span', 'portrait');
     if (queen.image) {
@@ -357,13 +357,14 @@ const Episode = (function () {
   // The 7 finale screens, from the log made by GRX.runFinale
   function buildFinaleScenes(fin) {
     const out = [];
-    const count = fin.finalists.length;
+    const count = fin.finalists.length;                          // queens in the final lip sync
+    const total = (fin.entrants || fin.finalists).length;        // queens left when the finale starts
     const winner = fin.winner;
     const queens = season.queens;
 
     // 1. Announcement
     out.push({ id: 'finale-announce', kicker: 'It all comes down to this', big: 'The Finale',
-               text: 'After ' + season.episodes.length + ' episodes, only ' + numberWord(count) +
+               text: 'After ' + season.episodes.length + ' episodes, only ' + numberWord(total) +
                      ' queens are left. One of them will be crowned the winner of this season.' });
 
     // 2. The eliminated queens return as guests
@@ -371,6 +372,16 @@ const Episode = (function () {
                text: 'The queens of this season!',
                groups: [{ size: fin.guests.length > 8 ? 'compact' : 'mid',
                           items: fin.guests.map(function (id) { return item(id, 'GUEST', 'guest'); }) }] });
+
+    // 2b. Top 4 finale: one queen is cut before the final lip sync
+    if (fin.cut) {
+      out.push({ id: 'finale-cut-announce', kicker: 'But wait', title: 'Only ' + numberWord(count) + ' will make it',
+                 text: 'Only ' + numberWord(count) + ' of you will be making it to the final lip sync.',
+                 groups: [{ size: 'mid', items: plain(fin.entrants) }] });
+      out.push({ id: 'finale-cut', kicker: 'Not tonight', title: name(fin.cut),
+                 text: name(fin.cut) + ', I\u2019m sorry my dear, but you will not be making it to the final lip sync.',
+                 groups: [{ big: true, items: [item(fin.cut, 'ELIM', 'finale-elim', 'cut')] }] });
+    }
 
     // 3. The finalists
     out.push({ id: 'finale-finalists', kicker: 'The finalists',
@@ -442,7 +453,8 @@ const Episode = (function () {
       lines.push('Queens left: ' + season.queens.filter(function (q) { return q.status === 'active'; }).length);
     }
     if (inEpisode && currentLog.finale) {
-      lines.push('Finalists: ' + currentLog.finalists.length);
+      lines.push('Finalists: ' + currentLog.finalists.length +
+                 (currentLog.cut ? '  (cut: ' + name(currentLog.cut) + ')' : ''));
       lines.push('Winner: ' + name(currentLog.winner));
     } else if (inEpisode) {
       const ev = {};

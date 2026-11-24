@@ -99,6 +99,7 @@ const TrackRecord = (function () {
       if (!season.finale) return 'TBA';
       return queen.finalRank === 1 ? 'Winner' : 'Runner-up';
     }
+    if (queen.finaleCut) return ordinal(queen.finalRank);      // cut in a Top 4 finale: 4th
     const log = season.episodes[queen.eliminatedEp - 1];
     return log ? ordinal(log.queensLeft) : '';
   }
@@ -167,10 +168,14 @@ const TrackRecord = (function () {
 
       // Finale column: finalists WINNER / RUNNER UP, everyone else GUEST
       if (season.finale) {
-        const fin = queen.status === 'active'
-          ? (queen.finalRank === 1 ? 'WINNER' : 'RUNNER UP')
-          : 'GUEST';
-        row.appendChild(make('td', PLACEMENT_CLASS[fin], fin));
+        if (queen.finaleCut) {
+          row.appendChild(make('td', 'p-finale-elim', 'ELIM'));     // cut before the final lip sync
+        } else {
+          const fin = queen.status === 'active'
+            ? (queen.finalRank === 1 ? 'WINNER' : 'RUNNER UP')
+            : 'GUEST';
+          row.appendChild(make('td', PLACEMENT_CLASS[fin], fin));
+        }
       }
       tbody.appendChild(row);
     });

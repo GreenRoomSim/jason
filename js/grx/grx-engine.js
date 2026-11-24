@@ -57,7 +57,7 @@ const GRX = (function () {
       episode: 1,
       queens: queens.map(function (q) {
         return { id: q.id, name: q.name, stats: q.stats, status: 'active',
-                 placements: [], lipSyncs: 0, wins: 0, eliminatedEp: null, finalRank: null };
+                 placements: [], lipSyncs: 0, wins: 0, eliminatedEp: null, finalRank: null, finaleCut: false };
       }),
       challengeHistory: [],
       premiere: premiereFor(queens.length, settings),   // { id, episodes, tops }
@@ -321,8 +321,11 @@ const GRX = (function () {
   /* ---------- The finale ---------- */
   // Runs once the regular episodes are done (state.done). Every finalist lip
   // syncs; the best total (see GRX_CONFIG.finale) is crowned, the rest are
-  // runners-up. Returns a log (and stores it in state.finale):
-  //   { finale: true, finalists: [ids], guests: [ids, in elimination order],
+  // runners-up. In a Top 4 finale one queen is cut first (weakest resume).
+  // Returns a log (and stores it in state.finale):
+  //   { finale: true, entrants: [ids of everyone left at the start],
+  //     finalists: [ids who lip sync], cut: id or null,
+  //     guests: [ids, in elimination order],
   //     song, winner: id, runnersUp: [ids, best first] }
   function runFinale(state) {
     if (state.finale) return state.finale;
@@ -330,14 +333,29 @@ const GRX = (function () {
 
     const F = C.finale;
     const ids = function (list) { return list.map(function (q) { return q.id; }); };
-    const finalists = activeQueens(state);
+    const entrants = activeQueens(state);
+    const guests = state.eliminated.map(function (e) { return e.id; });
 
-    const scored = finalists.map(function (q) {
+    const entries = entrants.map(function (q) {
       const statAvg = Object.keys(q.stats).reduce(function (s, k) { return s + q.stats[k]; }, 0) /
                       Object.keys(q.stats).length;
       const resume = statAvg + q.wins * F.winBonus - q.lipSyncs * F.btm2Penalty + gauss(state.rng) * C.chaos;
-      const sync = roll(state, q, { lipSync: 1 }, C.lipSyncChaos);
-      return { q: q, total: sync * F.lipSyncShare + resume * (1 - F.lipSyncShare) };
+      return { q: q, resume: resume };
+    });
+
+    // Top 4 finale: the weakest resume is cut before the final lip sync
+    const cuts = (C.finaleCuts && C.finaleCuts[state.settings.finale]) || 0;
+    let cut = null;
+    let contenders = entries;
+    if (cuts > 0 && entries.length > 3) {
+      cut = entries.slice().sort(function (a, b) { return a.resume - b.resume; })[0].q;
+      contenders = entries.filter(function (e) { return e.q !== cut; });
+    }
+    const finalists = contenders.map(function (e) { return e.q; });
+
+    const scored = contenders.map(function (e) {
+      const sync = roll(state, e.q, { lipSync: 1 }, C.lipSyncChaos);
+      return { q: e.q, total: sync * F.lipSyncShare + e.resume * (1 - F.lipSyncShare) };
     }).sort(function (a, b) { return b.total - a.total; });
 
     const song = pickFresh(state, typeof LIPSYNC_SONGS !== 'undefined' ? LIPSYNC_SONGS : [], state.songHistory);
@@ -347,10 +365,20 @@ const GRX = (function () {
       item.q.placements.push(i === 0 ? 'WINNER' : 'RUNNER UP');
     });
 
+    // The cut queen is out, with a finale-only ELIM (not added to the guests)
+    if (cut) {
+      cut.status = 'eliminated';
+      cut.eliminatedEp = state.episodes.length + 1;
+      cut.finaleCut = true;
+      cut.finalRank = entrants.length;
+    }
+
     const log = {
       finale: true,
+      entrants: ids(entrants),
       finalists: ids(finalists),
-      guests: state.eliminated.map(function (e) { return e.id; }),
+      cut: cut ? cut.id : null,
+      guests: guests,
       song: song ? { id: song.id, title: song.title, artist: song.artist } : null,
       winner: scored[0].q.id,
       runnersUp: ids(scored.slice(1).map(function (s) { return s.q; }))

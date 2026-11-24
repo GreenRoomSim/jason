@@ -103,6 +103,12 @@ const GRX_CONFIG = {
   /* Finalists per Finale setting (ids from data/options.js). */
   finaleSizes: { top3: 3, top4: 4, crown: 3 },
 
+  /* Queens cut BEFORE the final lip sync, per Finale setting (default 0).
+     Top 4 finale: the queen with the weakest season "resume" (see finale
+     below, no lip sync involved) is sent home and gets a special ELIM; the
+     other three lip sync for the crown. */
+  finaleCuts: { top4: 1 },
+
   /* How the winner is chosen. All finalists lip sync, and each gets
        total = lip sync roll * lipSyncShare + season "resume" * (1 - lipSyncShare)
      where resume = average stat + wins * winBonus - BTM2s * btm2Penalty + a
