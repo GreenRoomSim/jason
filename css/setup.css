@@ -181,6 +181,83 @@
 }
 
 
+/* Locked choices (still in development): blurred, lock icon on top.
+   They are buttons: clicking one opens the "coming soon" popup. */
+.opt--locked {
+  width: 100%;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.opt--locked .opt-box { opacity: 0.7; }
+
+.opt-lock {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  background: rgba(224, 239, 229, 0.35);
+  border-radius: 18px;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  transition: background 0.14s ease;
+}
+
+.opt--locked:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 18px; }
+
+@media (hover: hover) and (pointer: fine) {
+  .opt--locked:hover .opt-box { border-color: rgba(40, 106, 82, 0.25); }   /* no green hover: it can't be picked */
+  .opt--locked:hover .opt-lock { background: rgba(224, 239, 229, 0.5); }
+}
+
+/* The "coming soon" popup (a native <dialog>, centred by the browser) */
+.modal {
+  width: min(90vw, 420px);
+  padding: 32px 28px 30px;
+  text-align: center;
+  color: var(--ink);
+  background: var(--pale);
+  border: 2px solid rgba(40, 106, 82, 0.25);
+  border-radius: 28px;
+  box-shadow: 0 20px 50px rgba(18, 58, 43, 0.4);
+}
+
+.modal[open] { animation: screen-in 0.2s ease both; }
+
+.modal::backdrop {
+  background: rgba(18, 58, 43, 0.5);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+.modal-icon { display: inline-flex; margin-bottom: 6px; color: var(--ink); }
+.modal-icon svg { width: 44px; height: 44px; }
+
+.modal-title {
+  margin: 0 0 10px;
+  font-family: var(--font-logo);
+  font-weight: 800;
+  font-size: 1.9rem;
+  letter-spacing: -0.02em;
+}
+
+.modal-text {
+  margin: 0 0 24px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.modal-dismiss { min-width: 150px; margin-bottom: 6px; }
+
+
 /* ---------- 3. Cast panel (right) ---------- */
 .cast-panel {
   min-width: 0;                 /* lets the grid shrink instead of overflowing */
@@ -528,6 +605,7 @@
 
 /* ---------- 4. Accessibility ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .queen-card, .search, .opt-box, .opt-box::before { transition: none; }
+  .queen-card, .search, .opt-box, .opt-box::before, .opt-lock { transition: none; }
+  .modal[open] { animation: none; }
   .queen-card.just-added { animation: none; }
 }

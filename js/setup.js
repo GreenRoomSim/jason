@@ -33,7 +33,72 @@ const Setup = (function () {
     return node;
   }
 
+  // A locked choice (locked: true in options.js): blurred, with a lock icon.
+  // It is a plain button, so clicking it (or Enter/Space) opens the popup.
+  const LOCK_ICON =
+    '<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true" focusable="false">' +
+    '<path fill="currentColor" d="M17 9h-1V7a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zm-7-2a2 2 0 0 1 4 0v2h-4V7z"/>' +
+    '</svg>';
+
+  function makeLockedChoice(choice) {
+    const button = make('button', 'opt opt--locked');
+    button.type = 'button';
+    button.setAttribute('aria-label', choice.label + ' (locked, coming soon)');
+
+    const box = make('span', 'opt-box');
+    const text = make('span', 'opt-text');
+    text.appendChild(make('span', 'opt-label', choice.label));
+    box.appendChild(text);
+
+    const lock = make('span', 'opt-lock');
+    lock.innerHTML = LOCK_ICON;
+
+    button.appendChild(box);
+    button.appendChild(lock);
+    button.addEventListener('click', function () { showComingSoon(choice.label); });
+    return button;
+  }
+
+  // The "coming soon" popup: made once, the first time it is needed
+  let dialog = null;
+  let dialogText = null;
+
+  function showComingSoon(label) {
+    if (typeof HTMLDialogElement === 'undefined') {            // very old browsers
+      window.alert(label + ': this feature is still in development and is coming soon.');
+      return;
+    }
+    if (!dialog) {
+      dialog = make('dialog', 'modal');
+      dialog.setAttribute('aria-labelledby', 'modal-title');
+
+      const icon = make('span', 'modal-icon');
+      icon.innerHTML = LOCK_ICON;
+      const title = make('h3', 'modal-title', 'Coming soon');
+      title.id = 'modal-title';
+      dialogText = make('p', 'modal-text');
+      const dismiss = make('button', 'btn small modal-dismiss', 'Dismiss');
+      dismiss.type = 'button';
+      dismiss.addEventListener('click', function () { dialog.close(); });
+
+      // Escape closes the popup only (it must not also send you back to Home)
+      dialog.addEventListener('keydown', function (event) { event.stopPropagation(); });
+      // Clicking the dark area outside the box closes it too
+      dialog.addEventListener('click', function (event) { if (event.target === dialog) dialog.close(); });
+
+      dialog.appendChild(icon);
+      dialog.appendChild(title);
+      dialog.appendChild(dialogText);
+      dialog.appendChild(dismiss);
+      document.body.appendChild(dialog);
+    }
+    dialogText.textContent = label + ': this feature is still in development and is coming soon.';
+    dialog.showModal();
+  }
+
   function makeChoice(group, choice) {
+    if (choice.locked) return makeLockedChoice(choice);
+
     const isMulti = group.type === 'multi';
 
     const label = make('label', isMulti ? 'opt opt--multi' : 'opt');

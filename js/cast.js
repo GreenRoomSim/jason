@@ -36,6 +36,11 @@ const Cast = (function () {
   const SEARCH_DELAY = 120;  // ms to wait after typing before searching
   const START_MESSAGE = 'Start searching to find your cast.';
 
+  // EASTER EGG: type this in the search box to unlock the secret queens
+  // (data/bbdrqueens.json). Not case sensitive. Change it to whatever you like.
+  // They stay unlocked until the page is closed or refreshed.
+  const SECRET_CODE = 'secret';
+
 
   /* ---------- 2. Elements and state ---------- */
   const grid        = document.getElementById('queen-grid');
@@ -56,6 +61,8 @@ const Cast = (function () {
   let searchIndex = [];           // [{ queen, text, words }] prepared for searching
   let castIds = [];               // ids picked so far, in order
   let searchTimer = null;
+  let secretUnlocked = false;     // true once the code has been typed (this visit only)
+  let secretLoading = false;
 
 
   /* ---------- 3. Messages ---------- */
@@ -199,8 +206,46 @@ const Cast = (function () {
     grid.appendChild(fragment);
   }
 
+  // Add queens to the search (used at start-up, and when the secret code unlocks more)
+  function addToIndex(queens) {
+    queens.forEach(function (queen) {
+      queensById.set(queen.id, queen);
+      const text = normalize(queen.name);
+      searchIndex.push({ queen: queen, text: text, words: text.split(' ') });
+    });
+  }
+
+  // The secret code was typed: load the extra queens and tell the player
+  function unlockSecret() {
+    searchBox.value = '';
+    renderResults([]);
+    resultsText.textContent = '';
+
+    if (secretUnlocked) { showMessage('The secret queens are already unlocked.'); return; }
+    if (secretLoading) return;
+
+    secretLoading = true;
+    showMessage('Unlocking\u2026');
+    loadBonusQueens().then(function (added) {
+      addToIndex(added);
+      secretUnlocked = true;
+      secretLoading = false;
+      const text = 'Secret unlocked! ' + added.length + ' extra queens are now in the search.';
+      showMessage(text);
+      announce(text);
+      refresh();
+    }).catch(function (error) {
+      secretLoading = false;
+      console.error('Cast: could not load the secret queens.', error);
+      showMessage("Couldn't load the secret queens (" + error.message + ').');
+    });
+  }
+
   function applySearch() {
     const term = normalize(searchBox.value.trim());
+
+    // The secret code (not a search)
+    if (term !== '' && term === normalize(SECRET_CODE)) { unlockSecret(); return; }
 
     // Nothing typed yet: empty results with a prompt
     if (term === '') {
@@ -338,13 +383,8 @@ const Cast = (function () {
   /* ---------- 8. Start-up ---------- */
   // Runs once the queen data has loaded
   function start() {
-    QUEENS.forEach(function (queen) {
-      queensById.set(queen.id, queen);
-    });
-    searchIndex = QUEENS.map(function (queen) {
-      const text = normalize(queen.name);
-      return { queen: queen, text: text, words: text.split(' ') };
-    });
+    searchIndex = [];
+    addToIndex(QUEENS);
     applySearch();
     refresh();
   }
