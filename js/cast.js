@@ -17,7 +17,8 @@
      5. Search and results
      6. Cast changes (add / remove / random / clear)
      7. Refreshing the cast and cards
-     8. Start-up
+     8. Predefined casts (the second tab)
+     9. Start-up
 
    Handy in the browser console (F12):
      Cast.get()         ids of the queens picked so far
@@ -55,6 +56,13 @@ const Cast = (function () {
   const continueBtn = document.getElementById('cast-continue');
   const statusText  = document.getElementById('cast-status');
 
+  // The two tabs and the predefined casts tab
+  const tabButtons   = Array.from(document.querySelectorAll('.cast-tab'));
+  const tabPanels    = { find: document.getElementById('tab-find'), predefined: document.getElementById('tab-predefined') };
+  const franchiseBar = document.getElementById('predef-franchises');
+  const seasonGrid   = document.getElementById('predef-seasons');
+  const predefNote   = document.getElementById('predef-note');
+
   const cards = new Map();        // queen id -> result card (made on first use)
   const castCards = new Map();    // queen id -> card shown in "Your cast"
   const queensById = new Map();   // queen id -> queen data
@@ -63,6 +71,9 @@ const Cast = (function () {
   let searchTimer = null;
   let secretUnlocked = false;     // true once the code has been typed (this visit only)
   let secretLoading = false;
+  let franchises = [];            // predefined casts: [{ id, name, seasons: [{ label, full, num, queens }] }]
+  let activeFranchise = null;     // id of the franchise shown on the predefined tab
+  let seasonCards = [];           // [{ card, ids }] so the loaded season can be highlighted
 
 
   /* ---------- 3. Messages ---------- */
@@ -377,15 +388,161 @@ const Cast = (function () {
     randomBtn.disabled = full || QUEENS.length === 0;
     clearBtn.disabled = castIds.length === 0;
     continueBtn.disabled = castIds.length < CAST_MIN;
+    syncSeasonCards();
   }
 
 
-  /* ---------- 8. Start-up ---------- */
+  /* ---------- 8. Predefined casts (the second tab) ----------
+     Built from the "seasons" codes in queens.json, so nothing is typed in by
+     hand. Codes it understands (spaces and dashes don't matter):
+       US 5 / US S5 / US5      -> US, Season 5
+       US AS5 / USAS5          -> US All Stars 5
+       UK 1 / UK S1            -> UK, Series 1
+       CAN 6 / CAN S6          -> Canada, Season 6
+     Any other code like "AUS S1" gets its own franchise button, named from the
+     letters in front of the number. To add a nicer name or order for one,
+     add a row to FRANCHISES. */
+  const FRANCHISES = [
+    { id: 'us',           name: 'US',           test: /^US\s*-?\s*S?\s*(\d+)$/i,          label: 'Season ',     full: 'US Season ' },
+    { id: 'us-all-stars', name: 'US All Stars', test: /^US\s*-?\s*AS\s*-?\s*(\d+)$/i,     label: 'All Stars ',  full: 'US All Stars ' },
+    { id: 'uk',           name: 'UK',           test: /^UK\s*-?\s*S?\s*(\d+)$/i,          label: 'Series ',     full: 'UK Series ' },
+    { id: 'canada',       name: 'Canada',       test: /^CAN(?:ADA)?\s*-?\s*S?\s*(\d+)$/i, label: 'Season ',     full: 'Canada Season ' }
+  ];
+
+  // "US AS5" -> { id, name, order, num, label, full }, or null if it has no number
+  function parseSeason(code) {
+    const text = String(code).trim();
+    for (let i = 0; i < FRANCHISES.length; i++) {
+      const match = FRANCHISES[i].test.exec(text);
+      if (match) {
+        const f = FRANCHISES[i];
+        return { id: f.id, name: f.name, order: i, num: parseInt(match[1], 10),
+                 label: f.label + match[1], full: f.full + match[1] };
+      }
+    }
+    const num = /(\d+)\s*$/.exec(text);
+    if (!num) return null;
+    const prefix = text.replace(/\d+\s*$/, '').replace(/[\s-]+S$/i, '').replace(/[\s-]+$/, '').trim();
+    if (!prefix) return null;
+    return { id: 'x-' + prefix.toLowerCase().replace(/[^a-z0-9]+/g, '-'), name: prefix, order: 99,
+             num: parseInt(num[1], 10), label: 'Season ' + num[1], full: prefix + ' Season ' + num[1] };
+  }
+
+  // Group every queen into franchise -> season
+  function buildFranchises(queens) {
+    const byFranchise = new Map();
+    queens.forEach(function (queen) {
+      (queen.seasons || []).forEach(function (code) {
+        const p = parseSeason(code);
+        if (!p) return;
+        let fr = byFranchise.get(p.id);
+        if (!fr) { fr = { id: p.id, name: p.name, order: p.order, seasonMap: new Map() }; byFranchise.set(p.id, fr); }
+        let season = fr.seasonMap.get(p.num);
+        if (!season) { season = { num: p.num, label: p.label, full: p.full, queens: [] }; fr.seasonMap.set(p.num, season); }
+        if (season.queens.indexOf(queen) === -1) season.queens.push(queen);
+      });
+    });
+
+    const list = Array.from(byFranchise.values()).map(function (fr) {
+      return { id: fr.id, name: fr.name, order: fr.order,
+               seasons: Array.from(fr.seasonMap.values()).sort(function (a, b) { return a.num - b.num; }) };
+    });
+    list.sort(function (a, b) { return a.order - b.order || a.name.localeCompare(b.name); });
+    return list;
+  }
+
+  // Replace the cast with a real season's queens
+  function loadSeason(season) {
+    const ids = season.queens.map(function (queen) { return queen.id; });
+    castIds = ids.slice(0, CAST_MAX);
+    refresh();
+
+    const left = ids.length - castIds.length;
+    const text = season.full + ' loaded: ' + castIds.length + ' queens.' +
+      (left > 0 ? ' ' + left + ' left out (the cast limit is ' + CAST_MAX + ').' : '') +
+      ' Switch to Find your cast to add more queens.';
+    predefNote.textContent = text;
+    announce(text);
+  }
+
+  // A season button: its name and how many queens (hover for the names)
+  function makeSeasonCard(season) {
+    const card = make('button', 'season-card');
+    card.type = 'button';
+    card.setAttribute('aria-pressed', 'false');
+    card.appendChild(make('span', 'season-name', season.label));
+    card.appendChild(make('span', 'season-count', season.queens.length + ' queens'));
+
+    card.title = season.full + ': ' + season.queens.map(function (q) { return q.name; }).join(', ');
+    card.addEventListener('click', function () { loadSeason(season); });
+    return card;
+  }
+
+  // Highlight the season whose queens are exactly your cast
+  function syncSeasonCards() {
+    seasonCards.forEach(function (entry) {
+      const wanted = entry.ids.slice(0, CAST_MAX);
+      const on = castIds.length === wanted.length && wanted.every(isInCast);
+      entry.card.classList.toggle('is-active', on);
+      entry.card.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function renderFranchiseBar() {
+    franchiseBar.textContent = '';
+    franchises.forEach(function (fr) {
+      const b = make('button', 'franchise-pill', fr.name);
+      b.type = 'button';
+      b.dataset.id = fr.id;
+      b.setAttribute('aria-pressed', String(fr.id === activeFranchise));
+      b.addEventListener('click', function () { showFranchise(fr.id); });
+      franchiseBar.appendChild(b);
+    });
+  }
+
+  function showFranchise(id) {
+    activeFranchise = id;
+    renderFranchiseBar();
+    const fr = franchises.find(function (f) { return f.id === id; });
+    seasonGrid.textContent = '';
+    seasonCards = [];
+    if (!fr) return;
+    const fragment = document.createDocumentFragment();
+    fr.seasons.forEach(function (season) {
+      const card = makeSeasonCard(season);
+      seasonCards.push({ card: card, ids: season.queens.map(function (q) { return q.id; }) });
+      fragment.appendChild(card);
+    });
+    seasonGrid.appendChild(fragment);
+    syncSeasonCards();
+  }
+
+  function startPredefined() {
+    franchises = buildFranchises(QUEENS);
+    if (franchises.length === 0) {
+      predefNote.textContent = 'No seasons were found in ' + QUEENS_URL + '.';
+      return;
+    }
+    predefNote.textContent = 'Pick a season to use its cast. It replaces your current cast, and you can add more queens afterwards.';
+    showFranchise(franchises[0].id);
+  }
+
+  // Switch between the two tabs ("Your cast" below them never changes)
+  function showTab(name) {
+    tabButtons.forEach(function (button) {
+      button.setAttribute('aria-selected', String(button.dataset.tab === name));
+    });
+    Object.keys(tabPanels).forEach(function (key) { tabPanels[key].hidden = key !== name; });
+  }
+
+
+  /* ---------- 9. Start-up ---------- */
   // Runs once the queen data has loaded
   function start() {
     searchIndex = [];
     addToIndex(QUEENS);
     applySearch();
+    startPredefined();
     refresh();
   }
 
@@ -428,6 +585,11 @@ const Cast = (function () {
         if (searchIndex.length) applySearch();
       }
     });
+
+    tabButtons.forEach(function (button) {
+      button.addEventListener('click', function () { showTab(button.dataset.tab); });
+    });
+    predefNote.textContent = 'Loading casts\u2026';
 
     randomBtn.addEventListener('click', addRandom);
     clearBtn.addEventListener('click', clear);

@@ -8,5 +8,5 @@
 'use strict';
 
 const DEV = {
-  enabled: true    // <-- true = show developer stats, false = hide them
+  enabled: false    // <-- true = show developer stats, false = hide them
 };

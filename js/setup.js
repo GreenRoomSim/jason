@@ -140,10 +140,17 @@ const Setup = (function () {
     return section;
   }
 
+  let forceNote = null;     // the "this format locks other settings" message
+
   function build() {
     const fragment = document.createDocumentFragment();
     SETUP_OPTIONS.forEach(function (group) {
       fragment.appendChild(makeGroup(group));
+      if (group.id === 'format') {                 // the message sits under the Format group
+        forceNote = make('p', 'settings-note');
+        forceNote.hidden = true;
+        fragment.appendChild(forceNote);
+      }
     });
     container.appendChild(fragment);
   }
@@ -152,6 +159,53 @@ const Setup = (function () {
   /* ---------- 3. Reading and updating settings ---------- */
   function findGroup(id) {
     return SETUP_OPTIONS.find(function (group) { return group.id === id; });
+  }
+
+  // Make every radio button / checkbox show what is in state
+  function syncInputs() {
+    container.querySelectorAll('input').forEach(function (input) {
+      const group = findGroup(input.name);
+      if (!group) return;
+      input.checked = group.type === 'multi'
+        ? state[group.id].indexOf(input.value) !== -1
+        : state[group.id] === input.value;
+    });
+  }
+
+  // A format can force other settings (forces: {...} in options.js, e.g. Lip Sync
+  // Legacy needs a Regular premiere). Forced groups are locked; the player's own
+  // picks are remembered and put back when another format is chosen.
+  let savedState = null;
+
+  function applyForces() {
+    const formatGroup = findGroup('format');
+    const chosen = formatGroup && formatGroup.choices.find(function (c) { return c.id === state.format; });
+    const forces = (chosen && chosen.forces) || null;
+
+    if (forces && !savedState) savedState = JSON.parse(JSON.stringify(state));
+    if (!forces && savedState) {
+      Object.keys(savedState).forEach(function (id) { if (id !== 'format') state[id] = savedState[id]; });
+      savedState = null;
+    }
+    if (forces) {
+      Object.keys(forces).forEach(function (id) {
+        state[id] = Array.isArray(forces[id]) ? forces[id].slice() : forces[id];
+      });
+    }
+    syncInputs();
+
+    container.querySelectorAll('input').forEach(function (input) {
+      if (input.name === 'format') return;
+      const forced = forces ? forces[input.name] : undefined;
+      const locked = forced !== undefined && (Array.isArray(forced) || input.value !== forced);
+      input.disabled = locked;
+      input.closest('.opt').classList.toggle('opt--disabled', locked);
+    });
+
+    if (forceNote) {
+      forceNote.textContent = (chosen && chosen.forcesNote) || '';
+      forceNote.hidden = !(forces && chosen.forcesNote);
+    }
   }
 
   // Runs whenever any radio button or checkbox changes
@@ -168,6 +222,7 @@ const Setup = (function () {
     } else {
       state[group.id] = input.value;
     }
+    if (group.id === 'format') applyForces();
   }
 
   // A copy of the current settings (changing the copy changes nothing)
@@ -184,6 +239,7 @@ const Setup = (function () {
         : group.default;
     });
     build();
+    applyForces();
     container.addEventListener('change', onChange);
   }
 

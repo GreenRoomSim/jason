@@ -1,0 +1,124 @@
+/* ==========================================================================
+   GreenRoom Simulator - css/predefined.css
+   The two tabs above the cast picker (Find your cast / Predefined casts) and
+   the predefined casts tab: franchise buttons + one small card per real season.
+   Uses the colour tokens from base.css. Load after setup.css.
+   ========================================================================== */
+
+/* ---------- Tabs ---------- */
+.cast-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 6px;
+  padding-bottom: 6px;           /* room for the active tab's underside */
+}
+
+.cast-tab {
+  font-family: var(--font-logo);
+  font-weight: 800;
+  font-size: clamp(1.05rem, 2vw, 1.4rem);
+  letter-spacing: -0.02em;
+  padding: 10px 22px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.55);
+  border: 3px solid rgba(40, 106, 82, 0.35);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease, transform 0.14s ease;
+}
+.cast-tab:hover,
+.cast-tab:focus-visible { border-color: var(--accent); outline: none; }
+.cast-tab[aria-selected="true"] {
+  color: var(--pale);
+  background: var(--ink);
+  border-color: var(--ink);
+  box-shadow: 0 4px 0 var(--ink-edge);
+}
+
+/* Each tab's content stacks the same way */
+.cast-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---------- Predefined casts ---------- */
+.predef-franchises {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.franchise-pill {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 0.95rem;
+  padding: 9px 18px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.6);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  box-shadow: 0 3px 0 rgba(27, 77, 59, 0.25);
+  cursor: pointer;
+  transition: border-color 0.14s ease, background 0.14s ease, color 0.14s ease;
+}
+.franchise-pill:hover,
+.franchise-pill:focus-visible { border-color: var(--accent); outline: none; }
+.franchise-pill[aria-pressed="true"] {
+  color: var(--ink-deep);
+  background: var(--accent);
+  box-shadow: 0 3px 0 var(--accent-edge);
+}
+
+.predef-note {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ink);
+  opacity: 0.8;
+}
+
+.predef-seasons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 10px;
+  padding-bottom: 6px;
+}
+
+.season-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 8px 12px 10px;
+  font-family: var(--font-body);
+  text-align: left;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.7);
+  border: 3px solid transparent;
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgba(27, 77, 59, 0.25), 0 5px 10px rgba(18, 58, 43, 0.12);
+  transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease, background 0.14s ease;
+}
+.season-card:hover,
+.season-card:focus-visible { transform: translateY(-2px) scale(1.03); border-color: var(--accent); outline: none; }
+.season-card.is-active {
+  background: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 3px 0 var(--accent-edge), 0 5px 10px rgba(18, 58, 43, 0.12);
+}
+
+.season-name {
+  font-family: var(--font-logo);
+  font-weight: 800;
+  font-size: 1.05rem;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.season-count { font-weight: 700; font-size: 0.72rem; opacity: 0.75; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cast-tab, .franchise-pill, .season-card { transition: none; }
+}

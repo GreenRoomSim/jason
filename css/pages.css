@@ -1,11 +1,15 @@
 /* ==========================================================================
    GreenRoom Simulator - css/pages.css
    Pieces shared by every sub-screen (Back button bar, page title) and the
-   simple placeholder pages (Changelog, Suggest a feature, Credits).
+   simple pages (Changelog, Suggest a feature, Credits).
+   Sections:
+     1. Placeholder pages and shared page header
+     2. Suggest a feature form
+     3. Changelog and Credits
    ========================================================================== */
 
 
-/* ---------- Placeholder pages and shared page header ---------- */
+/* ---------- 1. Placeholder pages and shared page header ---------- */
 .screen--page {
   --page-width: 860px;                 /* content width; screens can override */
   justify-content: flex-start;
@@ -91,4 +95,126 @@
   font-weight: 700;
   font-size: clamp(1rem, 2vw, 1.35rem);
   color: var(--ink);
+}
+
+
+/* ---------- 2. Suggest a feature form (built by js/suggest.js) ---------- */
+.suggest-card {
+  width: min(100%, var(--page-width));
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: clamp(20px, 3vw, 34px);
+  text-align: left;
+  background: rgba(255, 255, 255, 0.45);
+  border: 2px solid rgba(40, 106, 82, 0.18);
+  border-radius: 28px;
+  box-shadow: 0 8px 20px rgba(18, 58, 43, 0.12);
+}
+
+.suggest-field { display: flex; flex-direction: column; gap: 10px; }
+
+.suggest-label {
+  font-family: var(--font-logo);
+  font-weight: 800;
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.suggest-card .options { margin-top: 0; }
+.suggest-card .opt-box { min-height: 64px; padding: 12px 16px; }
+
+.suggest-text {
+  flex: none;
+  width: 100%;
+  min-height: 170px;
+  resize: vertical;
+  font-size: 1.05rem;
+  line-height: 1.45;
+}
+
+.suggest-count {
+  margin: 0;
+  text-align: right;
+  font-size: 0.85rem;
+  font-weight: 700;
+  opacity: 0.7;
+}
+
+.suggest-status {
+  margin: 0;
+  min-height: 1.4em;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.suggest-status.is-error { color: #7a1010; }
+
+.suggest-actions { display: flex; justify-content: flex-end; padding-bottom: 6px; }
+.suggest-thanks { align-items: center; text-align: center; }
+.suggest-thanks .suggest-actions { justify-content: center; }
+.suggest-thanks-text { margin: 0; font-weight: 700; font-size: 1.15rem; }
+
+
+/* ---------- 3. Changelog and Credits (text written in index.html) ----------
+   Same light card look as the suggest form and the settings panel. */
+.info-card {
+  width: min(100%, var(--page-width));
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: clamp(20px, 3vw, 34px);
+  text-align: left;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.45);
+  border: 2px solid rgba(40, 106, 82, 0.18);
+  border-radius: 28px;
+  box-shadow: 0 8px 20px rgba(18, 58, 43, 0.12);
+}
+
+/* One version in the changelog */
+.release-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding-bottom: 12px;
+  border-bottom: 3px solid var(--accent);
+}
+
+.release-version,
+.credit-title {
+  margin: 0;
+  font-family: var(--font-logo);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.release-version { font-size: clamp(1.4rem, 3vw, 2rem); }
+.credit-title    { font-size: 1.2rem; margin-bottom: 6px; }
+
+.release-date {
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+.release-list {
+  margin: 16px 0 0;
+  padding-left: 1.2em;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+/* Older versions sit underneath with a divider */
+.release + .release {
+  padding-top: 22px;
+  border-top: 2px solid rgba(40, 106, 82, 0.15);
+}
+
+/* Credits sections */
+.credit-block p {
+  margin: 0 0 6px;
+  font-weight: 700;
+  line-height: 1.5;
 }

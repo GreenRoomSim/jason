@@ -5,7 +5,8 @@
    Sections:
      1. Button clicks (anything with data-goto="screen-name")
      2. Keyboard shortcuts
-     3. Start the app
+     3. Online indicator
+     4. Start the app
 
    Plain scripts (no modules), so index.html also works when opened
    straight from a folder, not just from GitHub Pages.
@@ -34,7 +35,24 @@ document.addEventListener('keydown', function (event) {
 });
 
 
-/* ---------- 3. Start the app ---------- */
+/* ---------- 3. Online indicator (home screen, top right) ----------
+   Shows ONLINE with a glowing dot, or OFFLINE if the browser loses its connection. */
+(function () {
+  const box = document.getElementById('net-status');
+  if (!box) return;
+  const text = box.querySelector('.status-text');
+  function update() {
+    const online = navigator.onLine !== false;
+    box.classList.toggle('is-offline', !online);
+    text.textContent = online ? 'ONLINE' : 'OFFLINE';
+  }
+  window.addEventListener('online', update);
+  window.addEventListener('offline', update);
+  update();
+})();
+
+
+/* ---------- 4. Start the app ---------- */
 Setup.init();    // build the season settings (left of the setup screen)
 Cast.init();     // build the queen cards (right of the setup screen)
 Episode.init();  // basic episode screen (GRX test UI)

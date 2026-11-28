@@ -20,6 +20,11 @@
        ]
      }
 
+   A choice can force other settings: add  forces: { groupId: value }  (a single
+   group's id, or [] to switch every extra off). The forced groups are locked while
+   that choice is picked, and put back when another choice is picked. Optional
+   forcesNote: 'text'  is shown on the setup screen while it is forcing.
+
    A choice can be locked while it is in development: add  locked: true  to it.
    It shows blurred with a lock icon, and clicking it opens a "coming soon"
    popup instead of selecting it. Delete the line to unlock it.
@@ -47,7 +52,10 @@ const SETUP_OPTIONS = [
     default: 'regular',
     choices: [
       { id: 'regular',          label: 'Regular' },
-      { id: 'lipsync-legacy',   label: 'Lip Sync Legacy',   locked: true },
+      { id: 'lipsync-legacy',   label: 'Lip Sync Legacy',
+        note: 'Top 2 lip sync, the winner chops',
+        forces: { premiere: 'regular', finale: 'top3', extras: [] },
+        forcesNote: 'Lip Sync Legacy uses a Regular premiere and a Top 3 finale, with no extras for now.' },
       { id: 'lipsync-assassin', label: 'Lip Sync Assassin', locked: true }
     ]
   },
@@ -75,6 +83,18 @@ const SETUP_OPTIONS = [
       { id: 'top3',             label: 'Top 3 Finale' },
       { id: 'top4',             label: 'Top 4 Finale' },
       { id: 'crown',            label: 'Lip Sync For The Crown' }
+    ]
+  },
+
+  {
+    id: 'extras',
+    label: 'Extras',
+    type: 'multi',
+    help: 'Optional extras. Everything here is off by default.',
+    defaults: [],
+    choices: [
+      { id: 'riggory',    label: 'User Riggory', note: 'Choose the outcome of each episode if you want to' },
+      { id: 'talentshow', label: 'Talent Show',  note: 'Needs 10+ queens' }
     ]
   }
 

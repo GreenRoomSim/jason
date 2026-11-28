@@ -40,13 +40,13 @@
       "name":    "Ida Foxx",
       "image":   "ida_foxx.webp",
       "seasons": ["BDR 2"],
-      "stats":   [5, 2, 2, 4, 2]
+      "stats":   [5, 2, 2, 4, 3]
     },
     {
       "name":    "Valentine Ray Summers",
       "image":   "valentine_ray_summers.webp",
       "seasons": ["BDR 2"],
-      "stats":   [3, 1, 2, 4, 2]
+      "stats":   [5, 3, 4, 4, 3]
     },
     {
       "name":    "Nada Chance",

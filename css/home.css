@@ -1,30 +1,83 @@
 /* ==========================================================================
    GreenRoom Simulator - css/home.css
-   The home screen: logo (wordmark) and the main menu buttons.
+   The home screen: buttons on the left, big logo on the right (with a 3D glow
+   behind it), and the ONLINE indicator in the top right.
    Sections:
-     1. Home screen layout, logo and menu
-     2. Accessibility (reduced motion)
+     1. Layout (two columns, stacks on small screens)
+     2. Logo (wordmark + "simulator") and its glow
+     3. Menu buttons
+     4. Online indicator
+     5. Accessibility (reduced motion)
    ========================================================================== */
 
 
-/* ---------- 1. Home screen ---------- */
+/* ---------- 1. Layout ---------- */
 .screen--home {
+  position: relative;
   justify-content: center;
-  gap: clamp(36px, 7vh, 80px);
+  overflow: hidden;                          /* the glow can never make the page scroll */
+  padding-left: clamp(24px, 6vw, 110px);     /* buttons sit well in from the left edge */
+  padding-right: clamp(24px, 4vw, 70px);
 }
 
-/* Logo (wordmark) */
-.brand { user-select: none; }
+/* A very faint, still glow in the bottom left corner */
+.screen--home::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 40% 46% at 6% 100%, rgba(76, 189, 136, 0.2) 0%, rgba(76, 189, 136, 0) 100%);
+}
+
+.home-layout {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 1500px);
+  display: grid;
+  grid-template-columns: minmax(320px, 540px) minmax(0, 1fr);   /* buttons | logo (gets the rest) */
+  align-items: center;
+  gap: clamp(32px, 4vw, 64px);
+}
+
+.menu  { grid-column: 1; grid-row: 1; }
+.brand { grid-column: 2; grid-row: 1; justify-self: center; }
+
+/* Phones and small tablets: logo on top, buttons underneath */
+@media (max-width: 960px) {
+  .screen--home { padding-left: clamp(18px, 5vw, 48px); padding-right: clamp(18px, 5vw, 48px); }
+  .home-layout { grid-template-columns: 1fr; gap: clamp(28px, 6vh, 56px); }
+  .brand, .menu { grid-column: 1; }
+  .brand { grid-row: 1; }
+  .menu  { grid-row: 2; width: min(100%, 520px); margin: 0 auto; }
+}
+
+
+/* ---------- 2. Logo and its glow ---------- */
+/* The wordmark and "simulator" are ONE group: the group is only as wide as the
+   wordmark, and "simulator" is centred directly underneath it. */
+.brand {
+  position: relative;
+  isolation: isolate;                        /* keeps the glow behind the text, above the page */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  user-select: none;
+  text-align: center;
+}
 
 .wordmark {
   margin: 0;
   font-family: var(--font-logo);
   font-weight: 800;
-  font-size: clamp(3.4rem, 12vw, 12rem);   /* min, scales with screen, max */
+  font-size: clamp(3rem, 8.6vw, 11rem);      /* min, scales with screen, max */
   line-height: 0.9;
   letter-spacing: -0.045em;
   color: var(--ink);
   white-space: nowrap;
+  text-shadow: 0 0.03em 0 rgba(27, 77, 59, 0.14), 0 0.12em 0.22em rgba(18, 58, 43, 0.22);   /* a little depth */
 }
 
 /* The pulsing green dot after "GreenRoom" */
@@ -46,14 +99,14 @@
 
 /* "simulator" underneath, with a line either side */
 .tag {
-  margin: clamp(14px, 2.4vh, 28px) 0 0;
+  margin: clamp(12px, 2vh, 24px) 0 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 18px;
-  padding-left: 0.32em;          /* balances the letter-spacing */
+  gap: 16px;
+  padding-left: 0.32em;          /* balances the letter-spacing so it is truly centred */
   font-weight: 700;
-  font-size: clamp(1rem, 2.1vw, 1.7rem);
+  font-size: clamp(0.9rem, 1.8vw, 1.7rem);
   letter-spacing: 0.32em;
   color: var(--ink);
 }
@@ -61,48 +114,147 @@
 .tag::before,
 .tag::after {
   content: "";
-  width: clamp(36px, 8vw, 120px);
+  width: clamp(28px, 5vw, 90px);
   height: 3px;
   border-radius: 2px;
   background: var(--accent);
 }
 
-/* Menu layout */
+/* The 3D glow. It is centred on the logo group, so it always follows the logo.
+   Layers, top to bottom: bright core, soft ring, mint halo, wide glow, then the
+   "floor": a mint glow and a dark soft shadow under the logo, like a lit stage.
+   Change the rgba() numbers to make it stronger or fainter. */
+.brand::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 50%;
+  width: 170%;
+  aspect-ratio: 1.4;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 26% 30% at 50% 44%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%),
+    radial-gradient(ellipse 40% 42% at 50% 46%, rgba(255, 255, 255, 0) 62%, rgba(255, 255, 255, 0.5) 80%, rgba(255, 255, 255, 0) 100%),
+    radial-gradient(ellipse 44% 48% at 50% 46%, rgba(190, 245, 215, 0.8) 0%, rgba(140, 230, 185, 0) 100%),
+    radial-gradient(ellipse 70% 72% at 50% 50%, rgba(140, 230, 185, 0.42) 0%, rgba(140, 230, 185, 0) 100%),
+    radial-gradient(ellipse 40% 9% at 50% 76%, rgba(76, 189, 136, 0.55) 0%, rgba(76, 189, 136, 0) 100%),
+    radial-gradient(ellipse 32% 5% at 50% 77%, rgba(27, 77, 59, 0.32) 0%, rgba(27, 77, 59, 0) 100%);
+  animation: glow-breathe 11s ease-in-out infinite alternate;
+}
+
+@keyframes glow-breathe {
+  from { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
+  to   { opacity: 1;   transform: translate(-50%, -50%) scale(1.05); }
+}
+
+
+/* ---------- 3. Menu buttons ---------- */
 .menu {
-  width: min(100%, 860px);
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: clamp(22px, 3.6vw, 36px);
+  gap: clamp(26px, 4.4vh, 42px);
 }
 
-/* The three smaller buttons in a line */
-.row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: clamp(14px, 2.2vw, 26px);
-}
-
-/* The big main button */
+/* The big Start button (normal button green), with an arrow on the right.
+   On hover it only gets a little lighter. */
 .btn.start {
-  font-size: clamp(2.3rem, 5vw, 4.2rem);
-  padding: clamp(24px, 4.6vh, 48px) 20px;
-  border-radius: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: clamp(20px, 3.6vh, 36px) clamp(28px, 3.4vw, 46px);
+  font-size: clamp(2.4rem, 4.2vw, 4rem);
   letter-spacing: 0.02em;
+  text-align: left;
+  border-radius: 30px;
 }
 
-/* The three smaller buttons */
+.btn.start:not(:disabled):hover,
+.btn.start:not(:disabled):focus-visible {
+  --edge: var(--ink-edge);
+  --lift: 8px;
+  color: var(--pale);
+  background: linear-gradient(180deg, #3f9673 0%, #2e7b5d 55%);
+  transform: translateY(-2px) scale(1.02);
+}
+
+.btn.start:not(:disabled):active {
+  --lift: 2px;
+  transform: translateY(5px) scale(1.01);
+}
+
+.btn.start .arrow {
+  flex: 0 0 auto;
+  width: 1em;
+  height: 1em;
+  transition: transform 0.14s ease;
+}
+
+.btn.start:not(:disabled):hover .arrow,
+.btn.start:not(:disabled):focus-visible .arrow { transform: translateX(8px); }
+
+/* Changelog / Suggest / Credits: quieter, whitish buttons stacked underneath */
+.minor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .btn.minor {
-  font-size: clamp(0.95rem, 1.9vw, 1.55rem);
-  padding: clamp(16px, 3vh, 30px) 12px;
+  --edge: rgba(40, 106, 82, 0.3);
+  --lift: 6px;
+  padding: clamp(20px, 3.4vh, 30px) 28px;
+  font-size: clamp(1.2rem, 2vw, 1.7rem);
+  text-align: left;
+  border-radius: 20px;
+  color: var(--ink);
+  background: linear-gradient(180deg, #ffffff 0%, #eef6f1 100%);
 }
 
-/* Phones: stack the three small buttons */
-@media (max-width: 560px) {
-  .row { grid-template-columns: 1fr; }
+
+/* ---------- 4. Online indicator (top right) ---------- */
+.status {
+  position: absolute;
+  z-index: 2;
+  top: 14px;
+  right: clamp(14px, 3vw, 32px);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.16em;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.6);
+  border: 2px solid rgba(40, 106, 82, 0.18);
+  border-radius: 999px;
+  user-select: none;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px 2px var(--accent-soft);
+  animation: live 2.6s ease-out infinite;
+}
+
+/* Offline: grey dot, no glow */
+.status.is-offline .status-dot {
+  background: #9a9a9a;
+  box-shadow: none;
+  animation: none;
 }
 
 
-/* ---------- 2. Accessibility ---------- */
+/* ---------- 5. Accessibility ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .dot { animation: none; }
+  .dot, .status-dot, .brand::before { animation: none; }
+  .btn.start .arrow { transition: none; }
 }

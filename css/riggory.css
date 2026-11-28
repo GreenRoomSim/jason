@@ -1,0 +1,161 @@
+/* ==========================================================================
+   GreenRoom Simulator - css/riggory.css
+   The Choose Outcome button, its popup, and the track record note.
+   Built on the existing look: .modal (setup.css), .btn (base.css) and the
+   queen cards (setup.css). Load after setup.css, episode.css, track-record.css.
+   ========================================================================== */
+
+/* ---------- Choose Outcome button ---------- */
+/* Continue + Choose Outcome sit side by side */
+.episode-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 16px 20px;
+}
+
+/* ---------- The popup ---------- */
+.modal--rig { width: min(94vw, 580px); padding: 26px 22px 24px; }
+.modal--rig.modal--wide { width: min(94vw, 680px); }   /* up to 5 queens in one row */
+.modal--rig .modal-title { font-size: 1.6rem; margin-bottom: 8px; }
+.modal--rig .modal-text { margin-bottom: 18px; font-size: 0.95rem; }
+
+/* Small queen cards in one line. Reuses .queen-card (photo, name fade), but
+   the selected glow takes its colour from the kind of pick (the colour of the
+   placement she will get):
+   winner = WIN blue, saved from the bottom = LOW pink, stays = green,
+   finale winner = gold, finale cut = brown. Crown lip syncs = normal green. */
+.rig-grid {
+  --name-size: 0.85rem;
+  --name-size-long: 0.75rem;
+  --name-size-xlong: 0.66rem;
+  --rig-glow: var(--accent);
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 14px;
+  margin: 0 0 22px;
+  padding: 8px 6px;             /* room so the glow isn't cut off */
+}
+.rig-grid[data-kind="win"]        { --rig-glow: #4169e1; }   /* same as the WIN tag */
+.rig-grid[data-kind="low"]        { --rig-glow: #ea9999; }   /* same as the LOW tag */
+.rig-grid[data-kind="top2"]       { --rig-glow: #00bfff; }   /* same as the TOP 2 tag */
+.rig-grid[data-kind="finale-win"] { --rig-glow: #ffd100; }   /* WINNER gold */
+.rig-grid[data-kind="finale-cut"] { --rig-glow: #9e512c; }   /* finale ELIM brown */
+
+.modal--rig .rig-grid .queen-card {
+  /* fixed size, so nothing else can stretch it */
+  flex: none;
+  width: 130px !important;
+  height: 162px !important;
+  min-width: 0;
+  opacity: 0.72;
+}
+.modal--rig .rig-grid[data-kind="top2"] .queen-card { width: 100px !important; height: 125px !important; }
+.modal--rig .rig-grid[data-kind="top2"] { gap: 10px; }
+.modal--rig .rig-grid .queen-card::before { display: none; }   /* the 4:5 spacer isn't needed with a fixed size */
+.rig-grid .queen-card:hover,
+.rig-grid .queen-card:focus-visible { opacity: 1; }
+.rig-grid .queen-card .queen-name { padding: 20px 4px 5px; }
+
+.rig-grid .queen-card.is-selected {
+  opacity: 1;
+  box-shadow: 0 0 0 3px var(--rig-glow), 0 0 20px 5px var(--rig-glow);
+}
+/* The glow shows the pick, so no tick is needed */
+.rig-grid .queen-check { display: none !important; }
+
+/* Phones: a size that fits */
+@media (max-width: 560px) {
+  .modal--rig .rig-grid .queen-card { width: 96px !important; height: 120px !important; }
+  .modal--rig .rig-grid[data-kind="top2"] .queen-card { width: 66px !important; height: 83px !important; }
+}
+
+/* Cancel / Lock In: the main buttons */
+.rig-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px 18px;
+  padding-bottom: 12px;         /* room for the buttons' 3D underside */
+}
+
+/* ---------- "More options" (Save Both / Eliminate Both) ---------- */
+.rig-double {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin: 6px 0 0;
+}
+.rig-double:empty { display: none; }
+
+/* Quiet caps label, like "THE RUNWAY" */
+.rig-more {
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  opacity: 0.5;
+  cursor: pointer;
+}
+.rig-more:hover,
+.rig-more:focus-visible,
+.rig-more[aria-expanded="true"] { opacity: 0.85; outline: none; }
+
+/* The extra menu: colours match the placements */
+.rig-more-panel {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.rig-opt {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.12s ease, box-shadow 0.12s ease;
+}
+.rig-opt:hover,
+.rig-opt:focus-visible { opacity: 1; outline: none; }
+.rig-opt--shantay { background: #ff69b4; color: var(--ink-deep); }   /* double save = BTM2 pink */
+.rig-opt--sashay  { background: #8b0000; color: #fff; }              /* double elim = deep red */
+.rig-opt[aria-pressed="true"] { opacity: 1; box-shadow: 0 0 0 3px #fff, 0 0 0 6px currentColor; }
+
+/* ---------- Keeping the popup smooth ----------
+   The episode scene behind it has looping animations (glows, confetti) and
+   the popup blurs whatever is behind it, which is expensive. So while it is
+   open the animations behind it are paused. If it is still slow on an old
+   device, delete the backdrop-filter lines below to drop the blur. */
+body.rig-open .episode-stage,
+body.rig-open .episode-stage *,
+body.rig-open .confetti,
+body.rig-open .confetti * { animation-play-state: paused !important; }
+
+.modal--rig::backdrop {
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+.modal--rig .rig-grid .queen-card { transition: opacity 0.12s ease, box-shadow 0.12s ease; }
+
+/* ---------- Track record note ---------- */
+.track-block { display: inline-block; max-width: 100%; }
+
+.track-note {
+  margin: 8px 2px 0;
+  font-size: 0.8rem;
+  font-style: italic;
+  text-align: left;
+  color: #8a8a8a;
+}

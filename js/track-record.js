@@ -22,7 +22,8 @@ const TrackRecord = (function () {
 
   const PLACEMENT_CLASS = {
     WIN: 'p-win', TOP2: 'p-top2', HIGH: 'p-high', SAFE: 'p-safe',
-    LOW: 'p-low', BTM2: 'p-btm', ELIM: 'p-elim',
+    LOW: 'p-low', BTM2: 'p-btm', BTM3: 'p-btm', ELIM: 'p-elim',
+    BTM1: 'p-btm', RUN: 'p-run', 'SAFE-C': 'p-safe-crit',
     WINNER: 'p-winner', 'RUNNER UP': 'p-runner', GUEST: 'p-guest'
   };
 
@@ -54,7 +55,7 @@ const TrackRecord = (function () {
   }
 
   // Best to worst, used to order the rows
-  const PLACEMENT_ORDER = ['WIN', 'TOP2', 'HIGH', 'SAFE', 'LOW', 'BTM2', 'ELIM'];
+  const PLACEMENT_ORDER = ['WIN', 'TOP2', 'HIGH', 'SAFE', 'SAFE-C', 'BTM1', 'RUN', 'LOW', 'BTM3', 'BTM2', 'ELIM'];
   function placementRank(p) {
     const i = PLACEMENT_ORDER.indexOf(p);
     return i === -1 ? PLACEMENT_ORDER.length : i;
@@ -90,7 +91,9 @@ const TrackRecord = (function () {
       }
       return a.name.localeCompare(b.name);
     });
-    out.sort(function (a, b) { return b.eliminatedEp - a.eliminatedEp; });
+    // Same episode (double sashay): the one who went out first sits lower
+    const outIndex = function (q) { return season.eliminated.findIndex(function (e) { return e.id === q.id; }); };
+    out.sort(function (a, b) { return (b.eliminatedEp - a.eliminatedEp) || (outIndex(b) - outIndex(a)); });
     return inComp.concat(out);
   }
 
@@ -116,6 +119,7 @@ const TrackRecord = (function () {
     }
     if (queen.finaleCut) return ordinal(queen.finalRank);      // cut in a Top 4 finale: 4th
     const log = season.episodes[queen.eliminatedEp - 1];
+    if (log && log.double === 'sashay') return ordinal(log.queensLeft - 1) + '/' + ordinal(log.queensLeft);   // double sashay: shared places
     return log ? ordinal(log.queensLeft) : '';
   }
 
@@ -144,10 +148,20 @@ const TrackRecord = (function () {
     main.appendChild(rankTh);
     main.appendChild(nameTh);
 
-    episodes.forEach(function (log) {
+    for (let i = 0; i < episodes.length; i++) {
+      const log = episodes[i], nextLog = episodes[i + 1];
       main.appendChild(make('th', null, 'Ep. ' + log.episode));
-      sub.appendChild(make('th', null, challengeName(log)));
-    });
+      // Two-part challenge (Talent Show): one wide cell over both episodes
+      if (log.talentShow && log.talentShow.part === 1 && nextLog && nextLog.talentShow && nextLog.talentShow.part === 2) {
+        const wide = make('th', null, challengeName(log));
+        wide.colSpan = 2;
+        sub.appendChild(wide);
+        main.appendChild(make('th', null, 'Ep. ' + nextLog.episode));
+        i++;
+      } else {
+        sub.appendChild(make('th', null, challengeName(log)));
+      }
+    }
     if (season.finale) {
       main.appendChild(make('th', null, 'Finale'));
       sub.appendChild(make('th', null, 'Lip Sync'));
@@ -176,8 +190,12 @@ const TrackRecord = (function () {
 
       episodes.forEach(function (log) {
         const placement = placementFor(queen, log.episode);
+        // Double sashay: both ELIMs get their own colour. Double shantay: both BTM2s do.
+        let cls = placement ? (PLACEMENT_CLASS[placement] || '') : '';
+        if (placement === 'ELIM' && log.double === 'sashay') cls += ' p-double-elim';
+        if (placement === 'BTM2' && log.double === 'shantay') cls += ' p-double-btm';
         row.appendChild(placement
-          ? make('td', PLACEMENT_CLASS[placement] || '', placement)
+          ? make('td', cls.trim(), placement === 'SAFE-C' ? 'SAFE' : placement)
           : make('td', 'p-gone'));
       });
 
@@ -202,6 +220,14 @@ const TrackRecord = (function () {
 
     const wrap = make('div', 'track-wrap');
     wrap.appendChild(table);
+
+    // Riggory: a small note underneath if the user altered any result
+    if (season.rigged) {
+      const block = make('div', 'track-block');
+      block.appendChild(wrap);
+      block.appendChild(make('p', 'track-note', '* Some placements this season were altered by the user.'));
+      return block;
+    }
     return wrap;
   }
 

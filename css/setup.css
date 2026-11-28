@@ -181,6 +181,10 @@
 }
 
 
+/* Choices locked by the chosen format (e.g. Lip Sync Legacy forces a Regular premiere) */
+.opt--disabled input { cursor: not-allowed; }
+.opt--disabled .opt-box { opacity: 0.4; }
+
 /* Locked choices (still in development): blurred, lock icon on top.
    They are buttons: clicking one opens the "coming soon" popup. */
 .opt--locked {
